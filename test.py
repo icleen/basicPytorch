@@ -117,9 +117,7 @@ if __name__ == "__main__":
     class_names = load_classes(data_config["names"])
 
     # Initiate model
-    model = Darknet(
-        config['model_def'].format(config['type']),
-        type=config['type'] ).to(device)
+    model = make_model(config).to(device)
     if opt.weights_path.endswith(".weights"):
         # Load darknet weights
         model.load_darknet_weights(opt.weights_path)

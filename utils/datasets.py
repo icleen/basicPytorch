@@ -51,11 +51,14 @@ class CSVDataset(Dataset):
         #     self.labels = line[1:]
 
         self.kargs = kargs
-        darknet_mods = {'landmark', 'classes', 'twoobj', 'part2'}
+        darknet_mods = {'landmark', 'classes', 'twoobj'}
         self.loader = basic_loader
-        if 'type' in self.kargs:
+        print(kargs)
+        if 'type' in kargs:
             if kargs['type'] in darknet_mods:
                 self.loader = hip_loader
+            elif kargs['type'] == 'part2':
+                self.loader = part2_loader
 
         self.img_size = kargs['img_size'] if 'img_size' in kargs else 416
         self.max_objects = 100
