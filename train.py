@@ -190,6 +190,7 @@ if __name__ == "__main__":
                 nms_thres=0.5,
                 img_size=config['img_size'],
                 batch_size=config['vbatch_size'],
+                type=config['type'],
             )
             evaluation_metrics = [
                 ("val_precision", precision.mean()),

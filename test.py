@@ -21,14 +21,13 @@ from torch.autograd import Variable
 import torch.optim as optim
 
 
-def evaluate(model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size, verbose=False):
+def evaluate(model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size, type, verbose=False):
     model.eval()
 
     # Get dataloader
-    if model.type == 'twoobj':
-        dataset = TwoObjDataset(path, img_size=img_size, augment=False, multiscale=False)
-    else:
-        dataset = CSVDataset(path, img_size=img_size, augment=False, multiscale=False)
+    dataset = CSVDataset( path,
+        {'augment':False, 'multiscale':False,
+        'type':type} )
 
     dataloader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, shuffle=False,
@@ -102,7 +101,7 @@ def evaluate(model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", type=str,
-        default="config/config_landmark.json", help="path to config file")
+        default="configs/config_twoobj.json", help="path to config file")
     parser.add_argument("-w", "--weights_path", type=str,
         default="checkpoints/yolov3_ckpt_0.pth", help="path to weights file")
     opt = parser.parse_args()
@@ -140,6 +139,7 @@ if __name__ == "__main__":
         nms_thres=config['nms_thres'],
         img_size=config['img_size'],
         batch_size=config['vbatch_size'],
+        type=config['type'],
         verbose=True,
     )
 
