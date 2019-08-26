@@ -78,37 +78,35 @@ def part2_loader(img, label, augment=False):
     maxxy *= img.shape[0]
     img1 = img[int(minxy[0,1]):int(maxxy[0,1]), int(minxy[0,0]):int(maxxy[0,0])]
     img2 = img[int(minxy[1,1]):int(maxxy[1,1]), int(minxy[1,0]):int(maxxy[1,0])]
-    boxes[:,1:3] *= img.shape[0]
-    boxes[0,1:3] *= 1/img1.shape[0]
-    boxes[1,1:3] *= 1/img2.shape[0]
+    boxes[:,1:3] = ( ( boxes[:,1:3] * img.shape[0] ) - minxy ) / np.array([img1.shape[0], img2.shape[0]])
 
     boxes = boxes[:, :3]
     boxes = np.pad(boxes, ((0,0),(0,2)), 'constant', constant_values=0.1)
-
-    # img = cv2.rectangle(img, (int(minxy[0,0]), int(minxy[0,1])), (int(maxxy[0,0]), int(maxxy[0,1])), (255,0,0), 1)
-    # img = cv2.rectangle(img, (int(minxy[1,0]), int(minxy[1,1])), (int(maxxy[1,0]), int(maxxy[1,1])), (255,0,0), 1)
-    # cv2.imwrite('test.png', img)
-    # cv2.imwrite('img1.png', img1)
-    # cv2.imwrite('img2.png', img2)
 
     # Apply augmentations
     if augment:
         rnd = np.random.random()
         if rnd < 0.1:
-            img = cv2.medianBlur(img, 5)
+            img1 = cv2.medianBlur(img1, 5)
+            img2 = cv2.medianBlur(img2, 5)
         elif rnd < 0.2:
-            img = cv2.blur(img,(7,7))
+            img1 = cv2.blur(img1,(7,7))
+            img2 = cv2.blur(img2,(7,7))
         elif rnd < 0.5:
-            img = cv2.GaussianBlur(img,(7,7),0)
+            img1 = cv2.GaussianBlur(img1,(7,7),0)
+            img2 = cv2.GaussianBlur(img2,(7,7),0)
         # if np.random.random() < 0.5:
         #     img, boxes = rotate(img, boxes, np.random.normal(0.0, 7.0))
         boxes[:,1:] += np.random.normal(0.0, 0.002, boxes[:,1:].shape)
 
-    img = transforms.ToTensor()(img)
+    img1 = transforms.ToTensor()(img1)
+    # img2 = transforms.ToTensor()(img2)
     boxes = torch.from_numpy(boxes)
-    if augment and np.random.random() < 0.5:
-        img, targets = horisontal_flip(img, boxes)
+    # if augment and np.random.random() < 0.5:
+    #     img, targets = horisontal_flip(img, boxes)
 
-    targets = torch.zeros((len(boxes), 6))
-    targets[:, 1:] = boxes
-    return img, targets
+    # targets = torch.zeros((len(boxes), 6))
+    targets = torch.zeros((1, 6))
+    targets[0, 1:] = boxes[0:1]
+    # import pdb; pdb.set_trace()
+    return img1, targets
