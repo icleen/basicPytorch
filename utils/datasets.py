@@ -12,7 +12,8 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 
-from dataloaders import *
+from utils.dataloaders import *
+
 
 class ImageFolder(Dataset):
     def __init__(self, folder_path, img_size=416):
@@ -43,31 +44,35 @@ class CSVDataset(Dataset):
         # header = lines[0]
         # lines = lines[1:]
 
-        self.img_files = []
-        self.labels = []
-        for line in lines:
-            self.img_files.append(line[0])
-            self.labels = line[1:]
+        # self.img_files = []
+        # self.labels = []
+        # for line in self.lines:
+        #     self.img_files.append(line[0])
+        #     self.labels = line[1:]
 
         self.kargs = kargs
+        darknet_mods = {'landmark', 'classes', 'twoobj', 'part2'}
+        self.loader = basic_loader
+        if 'type' in self.kargs:
+            if kargs['type'] in darknet_mods:
+                self.loader = hip_loader
 
-        self.img_size = img_size
+        self.img_size = kargs['img_size'] if 'img_size' in kargs else 416
         self.max_objects = 100
-        self.augment = augment
-        self.multiscale = multiscale
-        self.normalized_labels = normalized_labels
+        self.augment = kargs['augment'] if 'augment' in kargs else False
+        self.multiscale = kargs['multiscale'] if 'multiscale' in kargs else True
         self.min_size = self.img_size - 3 * 32
         self.max_size = self.img_size + 3 * 32
         self.batch_count = 0
-        self.maxdeg = 45
+
+    def __len__(self):
+        return len(self.lines)
 
     def __getitem__(self, index):
         line = self.lines[index % len(self.lines)]
         img_path = line[0].rstrip()
         label = line[1:]
-        if 'type' in self.kargs:
-            if 'landmark' == self.kargs['type'] or 'classes' == self.kargs['type'] or 'twoobj' == self.kargs['type']:
-                img, targets = hip_loader(img_path, label)
+        img, targets = self.loader(img_path, label, self.augment)
         return img_path, img, targets
 
     def collate_fn(self, batch):
@@ -87,6 +92,3 @@ class CSVDataset(Dataset):
         # imgs = torch.stack([img for img in imgs])
         self.batch_count += 1
         return paths, imgs, targets
-
-    def __len__(self):
-        return len(self.img_files)

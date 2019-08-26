@@ -1,0 +1,4 @@
+classes= 2
+train=data/classes/ntrain.csv
+valid=data/classes/nvalid.csv
+names=data/classes/classes.names

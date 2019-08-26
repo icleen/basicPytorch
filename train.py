@@ -25,7 +25,7 @@ import torch.optim as optim
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", type=str,
-        default="config/config_landmark.json", help="path to config file")
+        default="configs/config_twoobj.json", help="path to config file")
     parser.add_argument("-v", "--verbose", default=False,
         help="if print all info")
     parser.add_argument("--continu", type=str, default=None,
@@ -53,9 +53,7 @@ if __name__ == "__main__":
     class_names = load_classes(data_config["names"])
 
     # Initiate model
-    model = Darknet(
-        config['model_def'].format(config['type']),
-        type=config['type'] ).to(device)
+    model = make_model(config).to(device)
     model.apply(weights_init_normal)
 
     # If specified we start from checkpoint
@@ -68,18 +66,14 @@ if __name__ == "__main__":
             model.load_darknet_weights(config['pretrained_weights'])
 
     # Get dataloader
-    if model.type == 'twoobj':
-        dataset = TwoObjDataset(train_path, augment=True,
-            multiscale=config['multiscale_training'])
-    else:
-        dataset = CSVDataset(train_path, augment=True,
-            multiscale=config['multiscale_training'])
+    dataset = CSVDataset( train_path,
+        {'augment':True, 'multiscale':config['multiscale_training'],
+        'type':config['type']} )
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=config['batch_size'],
         shuffle=True,
         num_workers=config['n_cpu'],
-        # num_workers=1,
         pin_memory=True,
         collate_fn=dataset.collate_fn,
     )

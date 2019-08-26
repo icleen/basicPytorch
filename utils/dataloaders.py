@@ -1,6 +1,20 @@
+import glob
+import random
+import os
+import sys
+import csv
+import cv2
+import numpy as np
+from PIL import Image
+import torch
+import torch.nn.functional as F
+
+from torch.utils.data import Dataset
+import torchvision.transforms as transforms
+from utils.augmentations import *
 
 
-def basic_loader(img, label):
+def basic_loader(img, label, augment=False):
     img = transforms.ToTensor()(Image.open(img_path).convert('RGB'))
     label = torch.ToTensor(int(label))
     return img, label
@@ -44,4 +58,4 @@ def hip_loader(img, label, augment=False):
     else:
         targets = torch.zeros((len(boxes), 6))
     targets[:, 1:] = boxes
-    return img, label
+    return img, targets
