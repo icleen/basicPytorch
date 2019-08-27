@@ -88,8 +88,8 @@ class CSVDataset(Dataset):
         targets = torch.cat(targets, 0)
         # Selects new image size every tenth batch
         if self.multiscale and self.batch_count % 10 == 0:
-            self.img_size = random.choice(range(self.min_size,
-                                                        self.max_size + 1, 32))
+            self.img_size = random.choice(
+                range(self.min_size, self.max_size + 1, 32) )
         # Resize images to input shape
         imgs = torch.stack([resize(img, self.img_size) for img in imgs])
         # imgs = torch.stack([img for img in imgs])

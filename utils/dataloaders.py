@@ -68,17 +68,19 @@ def part2_loader(img, label, augment=False):
     boxes = np.array(label, dtype=np.float64).reshape((-1, 7))
     minxy = boxes[:,3:5] - (boxes[:,5:7]/2)
     maxxy = boxes[:,3:5] + (boxes[:,5:7]/2)
-    if (boxes[:,1:3] < minxy).any():
-        boxes[:,1:3] = np.maximum(boxes[:,1:3], minxy)
-    if (boxes[:,1:3] > maxxy).any():
-        boxes[:,1:3] = np.minimum(boxes[:,1:3], maxxy)
-
-    # import pdb; pdb.set_trace()
     minxy *= img.shape[0]
     maxxy *= img.shape[0]
     img1 = img[int(minxy[0,1]):int(maxxy[0,1]), int(minxy[0,0]):int(maxxy[0,0])]
     img2 = img[int(minxy[1,1]):int(maxxy[1,1]), int(minxy[1,0]):int(maxxy[1,0])]
-    boxes[:,1:3] = ( ( boxes[:,1:3] * img.shape[0] ) - minxy ) / np.array([img1.shape[0], img2.shape[0]])
+    boxes[:,1:3] *= img.shape[0]
+    if (boxes[:,1:3] < minxy).any():
+        boxes[:,1:3] = np.maximum(boxes[:,1:3], minxy)
+    if (boxes[:,1:3] > maxxy).any():
+        boxes[:,1:3] = np.minimum(boxes[:,1:3], maxxy)
+    boxes[:,1:3] = boxes[:,1:3] - minxy
+    boxes[:,1:3] = boxes[:,1:3] / np.array([[img1.shape[1], img1.shape[0]],
+                                            [img2.shape[1], img2.shape[0]]])
+    boxes[:,1:3] = np.minimum(boxes[:,1:3], 1)
 
     boxes = boxes[:, :3]
     boxes = np.pad(boxes, ((0,0),(0,2)), 'constant', constant_values=0.1)
