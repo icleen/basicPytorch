@@ -161,6 +161,7 @@ def get_land_statistics(outputs, targets):
             plands = outputs[sample_i][:, :2]
             tlands = targets[targets[:, 0] == sample_i][:, 2:4]
         if len(tlands):
+            import pdb; pdb.set_trace()
             for pred_i, pland in enumerate(plands):
                 dist = torch.dist(pland, tlands[pred_i], 2)
                 land_dists[sample_i, pred_i] = dist.numpy()

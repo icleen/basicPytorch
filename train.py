@@ -36,6 +36,8 @@ if __name__ == "__main__":
     config = json.load(open(opt.config))
     print(config)
 
+    landm_set = ['twoobj', 'landmark', 'part2']
+
     config['log_path'] = config['log_path'].format(config['type'])
     os.makedirs(config['log_path'], exist_ok=True)
     os.makedirs('output', exist_ok=True)
@@ -198,7 +200,7 @@ if __name__ == "__main__":
                 ("val_mAP", AP.mean()),
                 ("val_f1", f1.mean()),
             ]
-            if model.type == 'twoobj' or model.type == 'landmark':
+            if model.type in landm_set:
                 evaluation_metrics.append( ("landm", landm.mean()) )
             logger.list_of_scalars_summary(evaluation_metrics, epoch)
             val_acc.append(evaluation_metrics)
@@ -210,7 +212,7 @@ if __name__ == "__main__":
                 ap_table += [[c, class_names[c], "%.5f" % AP[i]]]
             print(AsciiTable(ap_table).table)
             print(f"---- mAP {AP.mean()}")
-            if model.type == 'twoobj' or model.type == 'landmark':
+            if model.type in landm_set:
                 dist5 = np.sum(landm<5.0)/len(landm)
                 dist10 = np.sum(landm<10.0)/len(landm)
                 print('landmark dists:')

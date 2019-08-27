@@ -51,11 +51,9 @@ class CSVDataset(Dataset):
         #     self.labels = line[1:]
 
         self.kargs = kargs
-        darknet_mods = {'landmark', 'classes', 'twoobj'}
         self.loader = basic_loader
-        print(kargs)
         if 'type' in kargs:
-            if kargs['type'] in darknet_mods:
+            if kargs['type'] in ['landmark', 'classes', 'twoobj']:
                 self.loader = hip_loader
             elif kargs['type'] == 'part2':
                 self.loader = part2_loader

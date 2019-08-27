@@ -39,7 +39,8 @@ def evaluate(model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size
     labels = []
     sample_metrics = []  # List of tuples (TP, confs, pred)
     land_metrics = None
-    if model.type == 'twoobj' or model.type == 'landmark':
+    landm_set = ['twoobj', 'landmark', 'part2']
+    if model.type in landm_set:
         land_metrics = []  # List of np arrs (landmark dists)
     for batch_i, (imgps, imgs, targets) in enumerate(
             tqdm.tqdm(dataloader, desc="Detecting objects")):
@@ -63,7 +64,7 @@ def evaluate(model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size
         targets[:, 2:6] *= img_size
         metrics = get_batch_statistics(outputs, targets, iou_threshold=iou_thres)
         sample_metrics += metrics
-        if model.type == 'twoobj' or model.type == 'landmark':
+        if model.type in landm_set:
             if model.type == 'twoobj':
                 targets[:, -2:] *= img_size
             pdists = get_land_statistics(outputs, targets)
@@ -147,7 +148,7 @@ if __name__ == "__main__":
 
     print(f"mAP: {AP.mean()}")
 
-    if model.type == 'twoobj' or model.type == 'landmark':
+    if model.type in ['twoobj', 'landmark', 'part2']:
         dist5 = np.sum(landm<5.0)/len(landm)
         dist10 = np.sum(landm<10.0)/len(landm)
         print('landmark dists:')

@@ -66,12 +66,14 @@ def part2_loader(img, label, augment=False):
     img = cv2.imread(img, 1)
     #  Label
     boxes = np.array(label, dtype=np.float64).reshape((-1, 7))
-    minxy = boxes[:,3:5] - (boxes[:,5:7]/2)
-    maxxy = boxes[:,3:5] + (boxes[:,5:7]/2)
+    minxy = np.maximum(boxes[:,3:5] - (boxes[:,5:7]/2), 0)
+    maxxy = np.minimum(boxes[:,3:5] + (boxes[:,5:7]/2), 1)
     minxy *= img.shape[0]
     maxxy *= img.shape[0]
     img1 = img[int(minxy[0,1]):int(maxxy[0,1]), int(minxy[0,0]):int(maxxy[0,0])]
     img2 = img[int(minxy[1,1]):int(maxxy[1,1]), int(minxy[1,0]):int(maxxy[1,0])]
+    if img1.shape[0] < 1 or img1.shape[1] < 1 or img2.shape[0] < 1 or img2.shape[1] < 1:
+        import pdb; pdb.set_trace()
     boxes[:,1:3] *= img.shape[0]
     if (boxes[:,1:3] < minxy).any():
         boxes[:,1:3] = np.maximum(boxes[:,1:3], minxy)
