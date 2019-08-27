@@ -161,7 +161,6 @@ def get_land_statistics(outputs, targets):
             plands = outputs[sample_i][:, :2]
             tlands = targets[targets[:, 0] == sample_i][:, 2:4]
         if len(tlands):
-            import pdb; pdb.set_trace()
             for pred_i, pland in enumerate(plands):
                 dist = torch.dist(pland, tlands[pred_i], 2)
                 land_dists[sample_i, pred_i] = dist.numpy()
@@ -394,7 +393,7 @@ def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
             tx, ty, tw, th, tcls, tconf)
 
 
-def build_targets_twoobj(pred_boxes, pred_cls, target, anchors, ignore_thres):
+def build_targets_twoobj(pred_boxes, pred_cls, target, anchors, ignore_thres, isLandmark=True):
     ByteTensor = torch.cuda.ByteTensor if pred_boxes.is_cuda else torch.ByteTensor
     FloatTensor = torch.cuda.FloatTensor if pred_boxes.is_cuda else torch.FloatTensor
 
@@ -403,22 +402,10 @@ def build_targets_twoobj(pred_boxes, pred_cls, target, anchors, ignore_thres):
     nC = pred_cls.size(-1)
     nG = pred_boxes.size(2)
 
-    # Output tensors
-    obj_mask = ByteTensor(nB, nA, nG, nG).fill_(0)
-    noobj_mask = ByteTensor(nB, nA, nG, nG).fill_(1)
-    class_mask = FloatTensor(nB, nA, nG, nG).fill_(0)
-    iou_scores = FloatTensor(nB, nA, nG, nG).fill_(0)
-    txl = FloatTensor(nB, nA, nG, nG).fill_(0)
-    tyl = FloatTensor(nB, nA, nG, nG).fill_(0)
-    tx = FloatTensor(nB, nA, nG, nG).fill_(0)
-    ty = FloatTensor(nB, nA, nG, nG).fill_(0)
-    tw = FloatTensor(nB, nA, nG, nG).fill_(0)
-    th = FloatTensor(nB, nA, nG, nG).fill_(0)
-    tcls = FloatTensor(nB, nA, nG, nG, nC).fill_(0)
-
-    gxyl = target[:, -2:] * nG
-    gxl, gyl = gxyl.t()
-    target = target[:, :-2]
+    if isLandmark:
+        gxyl = target[:, -2:] * nG
+        gxl, gyl = gxyl.t()
+        target = target[:, :-2]
     # Convert to position relative to box
     target_boxes = target[:, 2:6] * nG
     gxy = target_boxes[:, :2]
@@ -431,7 +418,10 @@ def build_targets_twoobj(pred_boxes, pred_cls, target, anchors, ignore_thres):
     gx, gy = gxy.t()
     gw, gh = gwh.t()
     gi, gj = gxy.long().t()
+
     # Set masks
+    obj_mask = ByteTensor(nB, nA, nG, nG).fill_(0)
+    noobj_mask = ByteTensor(nB, nA, nG, nG).fill_(1)
     obj_mask[b, best_n, gj, gi] = 1
     noobj_mask[b, best_n, gj, gi] = 0
 
@@ -439,29 +429,37 @@ def build_targets_twoobj(pred_boxes, pred_cls, target, anchors, ignore_thres):
     for i, anchor_ious in enumerate(ious.t()):
         noobj_mask[b[i], anchor_ious > ignore_thres, gj[i], gi[i]] = 0
 
-    # print(gxl)
-    # print(gx)
-    # print(gxl-gx)
-    # print( (gxl - gx) / (gw / 2) )
-    # import pdb; pdb.set_trace()
-    # Landmarks
-    txl[b, best_n, gj, gi] = (gxl - gx) / (gw / 2)
-    tyl[b, best_n, gj, gi] = (gyl - gy) / (gh / 2)
+    if isLandmark:
+        # Landmarks
+        txl = FloatTensor(nB, nA, nG, nG).fill_(0)
+        tyl = FloatTensor(nB, nA, nG, nG).fill_(0)
+        txl[b, best_n, gj, gi] = (gxl - gx) / (gw / 2)
+        tyl[b, best_n, gj, gi] = (gyl - gy) / (gh / 2)
     # Coordinates
+    tx = FloatTensor(nB, nA, nG, nG).fill_(0)
+    ty = FloatTensor(nB, nA, nG, nG).fill_(0)
     tx[b, best_n, gj, gi] = gx - gx.floor()
     ty[b, best_n, gj, gi] = gy - gy.floor()
     # Width and height
+    tw = FloatTensor(nB, nA, nG, nG).fill_(0)
+    th = FloatTensor(nB, nA, nG, nG).fill_(0)
     tw[b, best_n, gj, gi] = torch.log(gw / anchors[best_n][:, 0] + 1e-16)
     th[b, best_n, gj, gi] = torch.log(gh / anchors[best_n][:, 1] + 1e-16)
     # One-hot encoding of label
+    tcls = FloatTensor(nB, nA, nG, nG, nC).fill_(0)
     tcls[b, best_n, gj, gi, target_labels] = 1
     # Compute label correctness and iou at best anchor
+    class_mask = FloatTensor(nB, nA, nG, nG).fill_(0)
+    iou_scores = FloatTensor(nB, nA, nG, nG).fill_(0)
     class_mask[b, best_n, gj, gi] = (pred_cls[b, best_n, gj, gi].argmax(-1) == target_labels).float()
     iou_scores[b, best_n, gj, gi] = bbox_iou(pred_boxes[b, best_n, gj, gi], target_boxes, x1y1x2y2=False)
 
     tconf = obj_mask.float()
-    return (iou_scores, class_mask, obj_mask, noobj_mask,
-            txl, tyl, tx, ty, tw, th, tcls, tconf)
+    retval = [iou_scores, class_mask, obj_mask, noobj_mask,
+        tx, ty, tw, th, tcls, tconf]
+    if isLandmark:
+        retval += [txl, tyl]
+    return retval
 
 def fake_target_build(target, img_size):
     gxyl = target[:, -2:] * img_size

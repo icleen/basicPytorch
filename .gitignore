@@ -1,6 +1,5 @@
 .git
 *__pycache__*
-*.cfg
 weights/*
 *log*.txt*
 *_logs/*
