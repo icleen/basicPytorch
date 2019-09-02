@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import numpy as np
 
 from utils.parse_config import *
-from utils.utils import build_targets, build_targets_twoobj
+from utils.utils import build_targets
 from utils.utils import to_cpu
 
 
@@ -200,27 +200,16 @@ class YOLOLayer(nn.Module):
             return output, 0
         else:
             total_loss = 0
-            if self.type != 'normal':
-                iou_scores, class_mask, obj_mask, noobj_mask, txl, tyl, tx, ty, tw, th, tcls, tconf = build_targets_twoobj(
-                    pred_boxes=pred_boxes,
-                    pred_cls=pred_cls,
-                    target=targets,
-                    anchors=self.scaled_anchors,
-                    ignore_thres=self.ignore_thres,
-                )
-                # Loss : Mask outputs to ignore non-existing objects
-                # (except with conf. loss)
-                loss_xl = self.mse_loss(xl[obj_mask], txl[obj_mask])
-                loss_yl = self.mse_loss(yl[obj_mask], tyl[obj_mask])
-                total_loss += loss_xl + loss_yl
-            else:
-                iou_scores, class_mask, obj_mask, noobj_mask, tx, ty, tw, th, tcls, tconf = build_targets(
-                    pred_boxes=pred_boxes,
-                    pred_cls=pred_cls,
-                    target=targets,
-                    anchors=self.scaled_anchors,
-                    ignore_thres=self.ignore_thres,
-                )
+            built = build_targets(
+                pred_boxes=pred_boxes,
+                pred_cls=pred_cls,
+                target=targets,
+                anchors=self.scaled_anchors,
+                ignore_thres=self.ignore_thres,
+                isLandmark=(self.type!='normal'),
+            )
+            iou_scores, class_mask, obj_mask, noobj_mask = built[:4]
+            tx, ty, tw, th, tcls, tconf = built[4:10]
 
             loss_x = self.mse_loss(x[obj_mask], tx[obj_mask])
             loss_y = self.mse_loss(y[obj_mask], ty[obj_mask])
@@ -247,7 +236,6 @@ class YOLOLayer(nn.Module):
             recall75 = torch.sum(iou75 * detected_mask) / (obj_mask.sum() + 1e-16)
 
             self.metrics = {
-                "loss": to_cpu(total_loss).item(),
                 "x": to_cpu(loss_x).item(),
                 "y": to_cpu(loss_y).item(),
                 "w": to_cpu(loss_w).item(),
@@ -263,7 +251,14 @@ class YOLOLayer(nn.Module):
                 "grid_size": grid_size,
             }
             if self.type != 'normal':
+                txl, tyl = built[10:]
+                # Loss : Mask outputs to ignore non-existing objects
+                # (except with conf. loss)
+                loss_xl = self.mse_loss(xl[obj_mask], txl[obj_mask])
+                loss_yl = self.mse_loss(yl[obj_mask], tyl[obj_mask])
+                total_loss += loss_xl + loss_yl
                 self.metrics["xl"] = to_cpu(loss_xl).item()
                 self.metrics["yl"] = to_cpu(loss_yl).item()
+            self.metrics["loss"] = to_cpu(total_loss).item()
 
             return output, total_loss
