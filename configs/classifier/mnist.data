@@ -1,0 +1,4 @@
+classes= 10
+train=configs/mnist/ntrain.csv
+valid=configs/mnist/nvalid.csv
+names=configs/mnist/classes.names

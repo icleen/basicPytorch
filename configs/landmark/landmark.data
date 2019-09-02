@@ -1,4 +1,0 @@
-classes= 2
-train=data/landmark/ntrain.csv
-valid=data/landmark/nvalid.csv
-names=data/landmark/classes.names

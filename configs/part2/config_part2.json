@@ -1,11 +1,12 @@
 {
+  "task": "yolov3",
   "type": "part2",
 
   "batch_size": 4,
   "vbatch_size": 10,
-  "model_def": "configs/yolov3-{}.cfg",
+  "model_def": "configs/{}-{}.cfg",
 
-  "data_config": "configs/{}.data",
+  "data_config": "configs/{}/{}.data",
   "pretrained_weights": "weights/darknet53.conv.74",
 
   "learning_rate": 0.0001,

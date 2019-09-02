@@ -1,4 +1,0 @@
-classes= 2
-train=data/twoobj/train.csv
-valid=data/twoobj/valid.csv
-names=data/twoobj/classes.names

@@ -1,0 +1,4 @@
+classes= 2
+train=configs/landmark/ntrain.csv
+valid=configs/landmark/nvalid.csv
+names=configs/landmark/classes.names

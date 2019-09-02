@@ -1,0 +1,4 @@
+classes= 2
+train=configs/hipobj/ntrain.csv
+valid=configs/hipobj/nvalid.csv
+names=configs/hipobj/classes.names

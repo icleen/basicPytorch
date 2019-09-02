@@ -12,9 +12,14 @@ from utils.utils import to_cpu
 
 def make_model(config):
     darknet_mods = ['landmark', 'classes', 'twoobj', 'part2']
-    if config['type'] in darknet_mods:
-        return Darknet(
-            config['model_def'].format(config['type']), type=config['type'] )
+    model_def = config['model_def'].format(config['type'], config['task'])
+    # if config['type'] in darknet_mods:
+    #     return Darknet(
+    #         config['model_def'].format(config['task'], config['type']), type=config['type'] )
+    # else:
+    #     return ConfigModel( config )
+    if config['task'] == 'yolov3':
+        return Darknet( model_def, type=config['type'] )
     else:
         return ConfigModel( config )
 
@@ -32,7 +37,8 @@ class ConfigModel(nn.Module):
 
     def __init__(self, config):
         super(ConfigModel, self).__init__()
-        self.module_defs = parse_model_config(config['model_def'].format(config['type']))
+        self.module_defs = parse_model_config(
+            config['model_def'].format(config['task'], config['type']))
         self.hyperparams, self.module_list = create_modules(self.module_defs)
         self.metric_layers = [layer[0]
             for layer in self.module_list if hasattr(layer[0], "metrics")]

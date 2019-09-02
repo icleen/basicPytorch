@@ -25,7 +25,7 @@ import torch.optim as optim
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", type=str,
-        default="configs/config_twoobj.json", help="path to config file")
+        default="configs/twoobj/config_twoobj.json", help="path to config file")
     parser.add_argument("-v", "--verbose", default=False,
         help="if print all info")
     parser.add_argument("--continu", type=str, default=None,
@@ -49,10 +49,10 @@ if __name__ == "__main__":
 
     # Get data configuration
     data_config = parse_data_config(
-        config['data_config'].format(config['type']))
+        config['data_config'].format(config['type']) )
     train_path = data_config["train"]
     valid_path = data_config["valid"]
-    class_names = load_classes(data_config["names"])
+    class_names = load_classes( data_config["names"] )
 
     # Initiate model
     model = make_model(config).to(device)
