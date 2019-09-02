@@ -1,5 +1,6 @@
 {
-  "type": "landmark",
+  "task": "yolov3",
+  "type": "twoobj",
 
   "batch_size": 4,
   "vbatch_size": 10,
@@ -19,7 +20,7 @@
   "epochs": 40,
 
   "iou_thres": 0.5,
-  "conf_thres": 0.8,
+  "conf_thres": 0.5,
   "nms_thres": 0.5,
 
   "checkpoint_path": "checkpoints/",

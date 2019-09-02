@@ -41,14 +41,6 @@ class CSVDataset(Dataset):
         self.csv_path = csv_path
         with open(csv_path, 'r') as f:
             self.lines = [line for line in csv.reader(f, delimiter=',')]
-        # header = lines[0]
-        # lines = lines[1:]
-
-        # self.img_files = []
-        # self.labels = []
-        # for line in self.lines:
-        #     self.img_files.append(line[0])
-        #     self.labels = line[1:]
 
         self.kargs = kargs
         self.loader = basic_loader

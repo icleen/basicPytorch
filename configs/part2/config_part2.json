@@ -1,5 +1,5 @@
 {
-  "type": "twoobj",
+  "type": "part2",
 
   "batch_size": 4,
   "vbatch_size": 10,

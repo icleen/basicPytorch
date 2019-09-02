@@ -1,5 +1,6 @@
 {
-  "type": "classes",
+  "task": "yolov3",
+  "type": "landmark",
 
   "batch_size": 4,
   "vbatch_size": 10,
@@ -8,7 +9,7 @@
   "data_config": "configs/{}.data",
   "pretrained_weights": "weights/darknet53.conv.74",
 
-  "learning_rate": 0.001,
+  "learning_rate": 0.0001,
   "n_cpu": 8,
   "img_size": 416,
   "checkpoint_interval": 1,
