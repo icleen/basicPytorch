@@ -223,13 +223,5 @@ if __name__ == "__main__":
 
 
 """
-python train.py --model_def config/yolov3-landmarks.cfg --batch_size 4
---data_config config/landmark.data
---pretrained_weights weights/darknet53.conv.74
-"""
-"""
-python detect.py --model_def config/yolov3-landmarks.cfg --batch_size 4
---class_path data/custom/classes.names
---weights_path checkpoints/yolov3_ckpt_3.pth
---image_folder /scratch/hip_data/test_images/test_series7/
+Notes on how to run
 """

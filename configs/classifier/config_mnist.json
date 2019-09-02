@@ -4,18 +4,15 @@
 
   "batch_size": 4,
   "vbatch_size": 10,
-  "model_def": "configs/{}-{}.cfg",
+  "model_def": "configs/{}/model.cfg",
 
-  "data_config": "configs/{}.data",
+  "data_config": "configs/{}/data.txt",
 
   "learning_rate": 0.0001,
   "n_cpu": 8,
-  "img_size": 416,
+  "img_size": 28,
   "checkpoint_interval": 1,
   "evaluation_interval": 1,
-  "compute_map": false,
-  "multiscale_training": true,
-  "gradient_accumulations": 2,
   "epochs": 40,
 
   "checkpoint_path": "checkpoints/",
