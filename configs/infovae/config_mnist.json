@@ -1,10 +1,10 @@
 {
-  "task": "vae",
+  "task": "infovae",
   "type": "mnist",
 
   "batch_size": 4,
   "vbatch_size": 10,
-  "model_def": "configs/{}/model.cfg",
+  "model_def": "configs/{}/mnist.cfg",
 
   "data_config": "configs/{}/data.txt",
 

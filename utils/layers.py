@@ -150,6 +150,28 @@ class EmptyLayer(nn.Module):
         super(EmptyLayer, self).__init__()
 
 
+class LatentLayer(nn.Module):
+    """Represents the latent space"""
+
+    def __init__(self, sample):
+        super(LatentLayer, self).__init__()
+        self.sample = sample
+
+    def forward(self, x, targets=None):
+        return x
+
+
+class DeconvLayer(nn.Module):
+    """Represents the latent space"""
+
+    def __init__(self, sample):
+        super(DeconvLayer, self).__init__()
+        self.sample = sample
+
+    def forward(self, x, targets=None):
+        return x
+
+
 class ClassifyLayer(nn.Module):
     """Classifies"""
 

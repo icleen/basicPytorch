@@ -4,7 +4,7 @@
 
   "batch_size": 40,
   "vbatch_size": 40,
-  "model_def": "configs/{}/model.cfg",
+  "model_def": "configs/{}/mnist.cfg",
 
   "data_config": "/scratch/mnist/",
 

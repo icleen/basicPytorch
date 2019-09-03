@@ -38,9 +38,8 @@ def evaluate(model, config, verbose=False):
     dlen = len(dataset)/100
     labels = []
     acc = 0.0
+    vloss = 0.0
     loop = tqdm.tqdm(total=len(dataloader), position=0)
-    # for batch_i, (imgs, targets) in enumerate(
-    #         tqdm.tqdm(dataloader, desc="Detecting objects")):
     for batch_i, (imgs, targets) in enumerate(dataloader):
 
         imgs = Variable(imgs.to(device), requires_grad=False)
@@ -48,13 +47,14 @@ def evaluate(model, config, verbose=False):
 
         with torch.no_grad():
             outputs, loss = model(imgs, targets)
+            vloss += loss.cpu().item()
             preds = torch.argmax(outputs, -1)
             labels += preds.tolist()
             acc += (preds == targets.cpu()).sum().numpy()
             loop.set_description( 'acc:{}/{}={:.2f}%'.format(acc,dlen,acc/dlen) )
             loop.update(1)
     loop.close()
-    return acc/dlen
+    return acc/dlen, vloss/len(dataloader)
 
 
 if __name__ == "__main__":
@@ -84,3 +84,4 @@ if __name__ == "__main__":
     print("Compute mAP...")
 
     results = evaluate( model, config )
+    print('vloss:', results[1])

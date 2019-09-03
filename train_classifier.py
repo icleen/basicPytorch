@@ -71,18 +71,19 @@ if __name__ == "__main__":
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'])
 
-    avg_loss = 0.0
-    dlen = len(dataset)
-    val_acc = []
+    metrics = {
+    'avg_loss': [],
+    'vloss': [],
+    'vacc': []
+    }
     modi = len(dataloader) // 5
-    with open(join(config['log_path'], 'log.txt'), 'w') as f:
-        f.write('')
+    # with open(join(config['log_path'], 'log.txt'), 'w') as f:
+    #     f.write('')
     for epoch in range(config['epochs']):
         model.train()
+        avg_loss = 0.0
         start_time = time.time()
         loop = tqdm.tqdm(total=len(dataloader), position=0)
-        # for batch_i, (imgs, targets) in enumerate(
-        #         tqdm.tqdm(dataloader, desc="Training")):
         for batch_i, (imgs, targets) in enumerate(dataloader):
             batches_done = len(dataloader) * epoch + batch_i
 
@@ -96,8 +97,7 @@ if __name__ == "__main__":
             avg_loss += loss.cpu().item()
 
             loop.set_description(
-                'epoch:{},loss:{:.4f}'.format(
-                epoch, avg_loss/((batch_i+1)*config['batch_size']) ) )
+                'epoch:{},loss:{:.4f}'.format( epoch, avg_loss/(batch_i+1) ) )
             loop.update(1)
         loop.close()
 
@@ -109,6 +109,11 @@ if __name__ == "__main__":
 
         if epoch % config['evaluation_interval'] == 0:
             results = evaluate( model, config )
+            metrics['avg_loss'].append(avg_loss/len(dataloader))
+            metrics['vacc'].append(results[0])
+            metrics['vloss'].append(results[1])
+            with open(join(config['log_path'], 'log.txt'), 'w') as f:
+                f.write(str(metrics))
 
 
 """
