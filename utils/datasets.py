@@ -26,6 +26,23 @@ def get_dataset(config, train=True):
         return None
 
 
+class MNISTDataset(Dataset):
+    """docstring for MNISTDataset."""
+
+    def __init__(self, root, train=True, download=False):
+        super(MNISTDataset, self).__init__()
+        self.mnist = MNIST(root, train=train, download=download,
+            transform=transforms.ToTensor())
+        self.loader = mnist_loader
+
+    def __len__(self):
+        return len(self.mnist)
+
+    def __getitem__(self, idx):
+        image, label = self.mnist[idx]
+        return self.loader(image, label, self.augment)
+
+
 class ImageFolder(Dataset):
     def __init__(self, folder_path, img_size=416):
         self.files = sorted(glob.glob("%s/*.*" % folder_path))

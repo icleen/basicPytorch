@@ -38,6 +38,12 @@ def horisontal_flip(images, targets):
     return images, targets
 
 
+def rotate(image, degree):
+    rows, cols = image.shape[:2]
+    rotM = cv2.getRotationMatrix2D((cols/2,rows/2),degree,1)
+    return cv2.warpAffine(image, rotM, (cols, rows))
+
+
 def rotate(image, targets, degree):
     # img2 = draw_centers(image.copy(), targets)
     # img2 = draw_boxes(img2, targets)

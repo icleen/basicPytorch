@@ -20,6 +20,24 @@ def basic_loader(img, label, augment=False):
     return img, label
 
 
+def mnist_loader(img, label, augment=False):
+    if augment:
+        img = img.numpy()[0]
+        rnd = np.random.random()
+        if rnd < 0.1:
+            img = cv2.medianBlur(img, 5)
+        elif rnd < 0.2:
+            img = cv2.blur(img,(7,7))
+        elif rnd < 0.5:
+            img = cv2.GaussianBlur(img,(7,7),0)
+        if np.random.random() < 0.5:
+            img = rotate(img, np.random.normal(0.0, 7.0))
+        img = np.stack((img,)*3, axis=-1)
+        img = img.reshape((3, self.height, self.width))
+        img = transforms.ToTensor()(img)
+    return img, label
+
+
 def hip_loader(img, label, augment=False):
     #  Image
     img = cv2.imread(img, 1)
