@@ -2,8 +2,8 @@
   "task": "classifier",
   "type": "mnist",
 
-  "batch_size": 4,
-  "vbatch_size": 10,
+  "batch_size": 40,
+  "vbatch_size": 40,
   "model_def": "configs/{}/model.cfg",
 
   "data_config": "/scratch/mnist/",

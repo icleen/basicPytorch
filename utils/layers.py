@@ -75,6 +75,10 @@ def create_modules(module_defs):
                     activations[module_def['activation']]
                 )
 
+        elif module_def['type'] == 'flatten':
+            dims = tuple( np.fromstring(module_def['dims'], dtype=int, sep=',') )
+            modules.add_module( f"{module_def['type']}_{module_i}", Flatten(dims) )
+
         elif module_def["type"] == "upsample":
             upsample = Upsample(scale_factor=int(module_def["stride"]), mode="nearest")
             modules.add_module(f"upsample_{module_i}", upsample)
@@ -115,6 +119,17 @@ def create_modules(module_defs):
     return hyperparams, module_list
 
 
+class Flatten(nn.Module):
+    """docstring for Flatten."""
+
+    def __init__(self, dims):
+        super(Flatten, self).__init__()
+        self.dims = dims
+
+    def forward(self, x):
+        return x.view(self.dims)
+
+
 class Upsample(nn.Module):
     """ nn.Upsample is deprecated """
 
@@ -141,12 +156,11 @@ class ClassifyLayer(nn.Module):
     def __init__(self, loss):
         super(ClassifyLayer, self).__init__()
         if loss == 'cross_entropy':
-            self.loss = nn.CrossEntropyLoss
+            self.loss = nn.CrossEntropyLoss()
         elif loss == 'nll':
-            self.loss = nn.NLLLoss
+            self.loss = nn.NLLLoss()
 
     def forward(self, x, targets=None):
-        import pdb; pdb.set_trace()
         if targets is not None:
             return x, self.loss(x, targets)
         return x

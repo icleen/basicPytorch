@@ -24,10 +24,10 @@ class ConfigModel(nn.Module):
     def __init__(self, config):
         super(ConfigModel, self).__init__()
         self.module_defs = parse_model_config(
-            config['model_def'].format(config['task'], config['type']))
+            config['model_def'].format(config['task']) )
         self.hyperparams, self.module_list = create_modules(self.module_defs)
         self.metric_layers = [layer[0]
-            for layer in self.module_list if hasattr(layer[0], "metrics")]
+            for layer in self.module_list if hasattr(layer[0], 'metrics')]
         self.img_size = config['img_size']
         self.seen = 0
         self.header_info = np.array([0, 0, 0, self.seen, 0], dtype=np.int32)
@@ -37,16 +37,21 @@ class ConfigModel(nn.Module):
         img_dim = x.shape[2]
         loss = 0
         layer_outputs, metric_outputs = [], []
+        normals = ['convolutional', 'upsample', 'maxpool', 'linear', 'flatten']
         for i, (module_def, module) in enumerate(zip(self.module_defs, self.module_list)):
-            if module_def["type"] in ["convolutional", "upsample", "maxpool"]:
+            if module_def['type'] in normals:
                 x = module(x)
-            elif module_def["type"] == "route":
+            elif module_def['type'] == 'route':
                 x = torch.cat([layer_outputs[int(layer_i)]
-                    for layer_i in module_def["layers"].split(",")], 1)
-            elif module_def["type"] == "shortcut":
-                layer_i = int(module_def["from"])
+                    for layer_i in module_def['layers'].split(",")], 1)
+            elif module_def['type'] == 'shortcut':
+                layer_i = int(module_def['from'])
                 x = layer_outputs[-1] + layer_outputs[layer_i]
-            elif module_def["type"] == "metric":
+            elif module_def['type'] == 'classifier':
+                x, layer_loss = module[0](x, targets)
+                loss += layer_loss
+                metric_outputs.append(x)
+            elif module_def['type'] == 'yolo':
                 x, layer_loss = module[0](x, targets, img_dim)
                 loss += layer_loss
                 metric_outputs.append(x)
@@ -54,8 +59,8 @@ class ConfigModel(nn.Module):
         metric_outputs = to_cpu(torch.cat(metric_outputs, 1))
         if layer_outs:
             return (metric_outputs, layer_outputs) \
-                if targets is None else (loss, metric_outputs, layer_outputs)
-        return metric_outputs if targets is None else (loss, metric_outputs)
+                if targets is None else (metric_outputs, loss, layer_outputs)
+        return metric_outputs if targets is None else (metric_outputs, loss)
 
     def load_weights(self, weights_path, cutoff=None):
         """Parses and loads the weights stored in 'weights_path'"""
@@ -120,9 +125,9 @@ class ConfigModel(nn.Module):
 
         # Iterate through layers
         for i, (module_def, module) in enumerate(zip(self.module_defs[:cutoff], self.module_list[:cutoff])):
-            if module_def["type"] == "convolutional":
+            if module_def['type'] == 'convolutional':
                 conv_layer = module[0]
-                if module_def["batch_normalize"]:
+                if module_def['batch_normalize']:
                     # If batch norm, load bn first
                     bn_layer = module[1]
                     bn_layer.bias.data.cpu().numpy().tofile(fp)
@@ -134,6 +139,10 @@ class ConfigModel(nn.Module):
                     conv_layer.bias.data.cpu().numpy().tofile(fp)
                 # Load conv weights
                 conv_layer.weight.data.cpu().numpy().tofile(fp)
+            if module_def['type'] == 'linear':
+                lin_layer = module[0]
+                lin_layer.weight.data.cpu().numpy().tofile(fp)
+                lin_layer.bias.data.cpu().numpy().tofile(fp)
 
         fp.close()
 

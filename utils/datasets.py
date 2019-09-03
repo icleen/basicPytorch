@@ -25,17 +25,18 @@ class MNISTClasses(Dataset):
 
     def __init__(self, root, train=True, augment=False, download=False):
         super(MNISTClasses, self).__init__()
-        dotrans = [
+        dotrans = []
+        if augment:
+            dotrans += [
+                transforms.RandomApply([transforms.ColorJitter(
+                    0.5,0.5,0.5,0.25)], 0.5),
+                transforms.RandomApply([transforms.RandomAffine(
+                    5, translate=(0.1,0.1), scale=(0.9,1.1))], 0.5)
+            ]
+        dotrans += [
             transforms.ToTensor(),
             transforms.Lambda(expand3chans)
         ]
-        if augment:
-            dotrans += [
-                transforms.RandApply(transforms.ColorJitter(
-                    0.5,0.5,0.5,0.25), 0.4),
-                transforms.RandApply(transforms.RandomAffine(
-                    45, translate=(0.1,0.1), scale=(0.9,1.1)), 0.4)
-            ]
         dotrans = transforms.Compose(dotrans)
         self.mnist = MNIST(root,
             train=train, download=download, transform=dotrans)

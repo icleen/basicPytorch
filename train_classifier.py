@@ -47,7 +47,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Initiate model
-    model = Darknet( config['model_def'].format(config['task']) ).to(device)
+    model = ConfigModel( config ).to(device)
     model.apply(weights_init_normal)
 
     # If specified we start from checkpoint
@@ -60,7 +60,7 @@ if __name__ == "__main__":
             model.load_darknet_weights(config['pretrained_weights'])
 
     # Get dataloader
-    dataset = MNISTClasses( config['data_config'] )
+    dataset = MNISTClasses( config['data_config'], train=True, augment=True )
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=config['batch_size'],
@@ -71,10 +71,8 @@ if __name__ == "__main__":
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'])
 
-    metrics = [
-        "recon_loss",
-        "kl_loss",
-    ]
+    avg_loss = 0.0
+    dlen = len(dataset)
     val_acc = []
     modi = len(dataloader) // 5
     with open(join(config['log_path'], 'log.txt'), 'w') as f:
@@ -82,31 +80,35 @@ if __name__ == "__main__":
     for epoch in range(config['epochs']):
         model.train()
         start_time = time.time()
+        loop = tqdm.tqdm(total=len(dataloader), position=0)
+        # for batch_i, (imgs, targets) in enumerate(
+        #         tqdm.tqdm(dataloader, desc="Training")):
         for batch_i, (imgs, targets) in enumerate(dataloader):
             batches_done = len(dataloader) * epoch + batch_i
 
             imgs = Variable(imgs.to(device))
             targets = Variable(targets.to(device), requires_grad=False)
 
-            loss, outputs = model(imgs, targets)
+            outputs, loss = model(imgs, targets)
             loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+            avg_loss += loss.cpu().item()
 
-            if batches_done % config['gradient_accumulations']:
-                # Accumulates gradient before each step
-                optimizer.step()
-                optimizer.zero_grad()
+            loop.set_description(
+                'epoch:{},loss:{:.4f}'.format(
+                epoch, avg_loss/((batch_i+1)*config['batch_size']) ) )
+            loop.update(1)
+        loop.close()
 
         if epoch % config['checkpoint_interval'] == 0:
             torch.save(model.state_dict(),
                 join(config['checkpoint_path'],
-                '{}/{}-{}-{}.pth'.format(config['task'], config['type'], epoch))
+                '{}-{}-{}.pth'.format(config['task'], config['type'], epoch))
                 )
 
         if epoch % config['evaluation_interval'] == 0:
-            print("\n---- Evaluating Model ----")
-            # Evaluate the model on the validation set
             results = evaluate( model, config )
-            import pdb; pdb.set_trace()
 
 
 """
