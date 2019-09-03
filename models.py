@@ -10,20 +10,6 @@ from utils.layers import *
 from utils.utils import to_cpu
 
 
-def make_model(config):
-    darknet_mods = ['landmark', 'classes', 'twoobj', 'part2']
-    model_def = config['model_def'].format(config['type'], config['task'])
-    # if config['type'] in darknet_mods:
-    #     return Darknet(
-    #         config['model_def'].format(config['task'], config['type']), type=config['type'] )
-    # else:
-    #     return ConfigModel( config )
-    if config['task'] == 'yolov3':
-        return Darknet( model_def, type=config['type'] )
-    else:
-        return ConfigModel( config )
-
-
 class BasicModel(nn.Module):
     """docstring for BasicModel."""
 

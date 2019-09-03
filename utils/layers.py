@@ -14,6 +14,10 @@ def create_modules(module_defs):
     """
     Constructs module list of layer blocks from module configuration in module_defs
     """
+    activations = {
+        'leaky': nn.LeakyReLU(0.1), 'relu': nn.ReLU(),
+        'sigmoid': nn.Sigmoid(), 'tanh': nn.Tanh()
+    }
     hyperparams = module_defs.pop(0)
     output_filters = [int(hyperparams["channels"])]
     module_list = nn.ModuleList()
@@ -37,17 +41,39 @@ def create_modules(module_defs):
                 ),
             )
             if bn:
-                modules.add_module(f"batch_norm_{module_i}", nn.BatchNorm2d(filters, momentum=0.9, eps=1e-5))
-            if module_def["activation"] == "leaky":
-                modules.add_module(f"leaky_{module_i}", nn.LeakyReLU(0.1))
+                modules.add_module( f"batch_norm_{module_i}",
+                    nn.BatchNorm2d(filters, momentum=0.9, eps=1e-5) )
+            # if module_def["activation"] == "leaky":
+            #     modules.add_module( f"leaky_{module_i}", nn.LeakyReLU(0.1) )
+            if 'activation' in module_def:
+                modules.add_module(
+                    f"{module_def['activation']}_{module_i}",
+                    activations[module_def['activation']]
+                )
 
         elif module_def["type"] == "maxpool":
             kernel_size = int(module_def["size"])
             stride = int(module_def["stride"])
             if kernel_size == 2 and stride == 1:
-                modules.add_module(f"_debug_padding_{module_i}", nn.ZeroPad2d((0, 1, 0, 1)))
-            maxpool = nn.MaxPool2d(kernel_size=kernel_size, stride=stride, padding=int((kernel_size - 1) // 2))
+                modules.add_module( f"_debug_padding_{module_i}",
+                    nn.ZeroPad2d((0, 1, 0, 1)) )
+            maxpool = nn.MaxPool2d(kernel_size=kernel_size,
+                stride=stride, padding=int((kernel_size - 1) // 2))
             modules.add_module(f"maxpool_{module_i}", maxpool)
+
+        elif module_def['type'] == 'linear':
+            modules.add_module(
+                f"linear_{module_i}",
+                nn.Linear(
+                    int(module_def["input"]),
+                    int(module_def["output"])
+                )
+            )
+            if 'activation' in module_def:
+                modules.add_module(
+                    f"{module_def['activation']}_{module_i}",
+                    activations[module_def['activation']]
+                )
 
         elif module_def["type"] == "upsample":
             upsample = Upsample(scale_factor=int(module_def["stride"]), mode="nearest")
@@ -61,6 +87,12 @@ def create_modules(module_defs):
         elif module_def["type"] == "shortcut":
             filters = output_filters[1:][int(module_def["from"])]
             modules.add_module(f"shortcut_{module_i}", EmptyLayer())
+
+        elif module_def["type"] == "classifier":
+            modules.add_module(
+                f"classifier_{module_i}",
+                ClassifyLayer(module_def['loss'])
+            )
 
         elif module_def["type"] == "yolo":
             anchor_idxs = [int(x) for x in module_def["mask"].split(",")]
@@ -101,6 +133,23 @@ class EmptyLayer(nn.Module):
 
     def __init__(self):
         super(EmptyLayer, self).__init__()
+
+
+class ClassifyLayer(nn.Module):
+    """Classifies"""
+
+    def __init__(self, loss):
+        super(ClassifyLayer, self).__init__()
+        if loss == 'cross_entropy':
+            self.loss = nn.CrossEntropyLoss
+        elif loss == 'nll':
+            self.loss = nn.NLLLoss
+
+    def forward(self, x, targets=None):
+        import pdb; pdb.set_trace()
+        if targets is not None:
+            return x, self.loss(x, targets)
+        return x
 
 
 class YOLOLayer(nn.Module):

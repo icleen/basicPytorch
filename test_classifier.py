@@ -46,7 +46,7 @@ def evaluate(model, config, verbose=False):
 
         with torch.no_grad():
             outputs = model(imgs)
-            
+
 
         # Extract labels
         labels += targets[:, 1].tolist()
@@ -87,10 +87,6 @@ def evaluate(model, config, verbose=False):
     if land_metrics:
         land_metrics = np.array(land_metrics).reshape(-1)
     return precision, recall, AP, f1, ap_class, land_metrics
-
-
-def present_results(results, config):
-
 
 
 if __name__ == "__main__":

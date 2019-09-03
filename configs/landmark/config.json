@@ -7,6 +7,13 @@
   "model_def": "configs/{}/model.cfg",
 
   "data_config": "configs/{}/data.txt",
+  "data_config2": {
+    "type": "csv",
+    "classes": 2,
+    "train": "configs/{}/ntrain.csv",
+    "valid": "configs/{}/nvalid.csv",
+    "names": "configs/{}/classes.names"
+  },
   "pretrained_weights": "weights/darknet53.conv.74",
 
   "learning_rate": 0.0001,

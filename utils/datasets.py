@@ -6,41 +6,45 @@ import csv
 import cv2
 import numpy as np
 from PIL import Image
+
 import torch
 import torch.nn.functional as F
-
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
+from torchvision.datasets import MNIST
 
 from utils.dataloaders import *
 
 
-def get_dataset(config, train=True):
-    path = config['data_config2']['train'].format( config['type'] )
-    if not train:
-        path = config['data_config2']['valid'].format( config['type'] )
-    if config['data_config2']['type'] == 'csv':
-        return CSVDataset( path, { 'augment':train, 'type':config['type'],
-            'multiscale':train&config['multiscale_training'] } )
-    else:
-        return None
+def expand3chans(a, dims=(3,-1,-1)):
+    return a.expand(dims)
 
 
-class MNISTDataset(Dataset):
-    """docstring for MNISTDataset."""
+class MNISTClasses(Dataset):
+    """docstring for MNISTClasses."""
 
-    def __init__(self, root, train=True, download=False):
-        super(MNISTDataset, self).__init__()
-        self.mnist = MNIST(root, train=train, download=download,
-            transform=transforms.ToTensor())
-        self.loader = mnist_loader
+    def __init__(self, root, train=True, augment=False, download=False):
+        super(MNISTClasses, self).__init__()
+        dotrans = [
+            transforms.ToTensor(),
+            transforms.Lambda(expand3chans)
+        ]
+        if augment:
+            dotrans += [
+                transforms.RandApply(transforms.ColorJitter(
+                    0.5,0.5,0.5,0.25), 0.4),
+                transforms.RandApply(transforms.RandomAffine(
+                    45, translate=(0.1,0.1), scale=(0.9,1.1)), 0.4)
+            ]
+        dotrans = transforms.Compose(dotrans)
+        self.mnist = MNIST(root,
+            train=train, download=download, transform=dotrans)
 
     def __len__(self):
         return len(self.mnist)
 
     def __getitem__(self, idx):
-        image, label = self.mnist[idx]
-        return self.loader(image, label, self.augment)
+        return self.mnist[idx]
 
 
 class ImageFolder(Dataset):

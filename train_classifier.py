@@ -4,11 +4,12 @@ from models import *
 from utils.logger import *
 from utils.utils import *
 from utils.datasets import *
-from test_other import evaluate
+from test_classifier import evaluate
 
 from terminaltables import AsciiTable
 
 import os
+from os.path import join
 import sys
 import time
 import json
@@ -45,11 +46,8 @@ if __name__ == "__main__":
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    class_names = load_classes(
-        config['data_config2']['names'].format(config['type']) )
-
     # Initiate model
-    model = make_model(config).to(device)
+    model = Darknet( config['model_def'].format(config['task']) ).to(device)
     model.apply(weights_init_normal)
 
     # If specified we start from checkpoint
@@ -62,14 +60,13 @@ if __name__ == "__main__":
             model.load_darknet_weights(config['pretrained_weights'])
 
     # Get dataloader
-    dataset = get_dataset( config )
+    dataset = MNISTClasses( config['data_config'] )
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=config['batch_size'],
         shuffle=True,
         num_workers=config['n_cpu'],
         pin_memory=True,
-        collate_fn=dataset.collate_fn,
     )
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'])
@@ -80,12 +77,12 @@ if __name__ == "__main__":
     ]
     val_acc = []
     modi = len(dataloader) // 5
-    with open('{}_log.txt'.format(config['type']), 'w') as f:
+    with open(join(config['log_path'], 'log.txt'), 'w') as f:
         f.write('')
     for epoch in range(config['epochs']):
         model.train()
         start_time = time.time()
-        for batch_i, (_, imgs, targets) in enumerate(dataloader):
+        for batch_i, (imgs, targets) in enumerate(dataloader):
             batches_done = len(dataloader) * epoch + batch_i
 
             imgs = Variable(imgs.to(device))
@@ -101,14 +98,15 @@ if __name__ == "__main__":
 
         if epoch % config['checkpoint_interval'] == 0:
             torch.save(model.state_dict(),
-                '{}/{}-{}-{}.pth'.format( config['checkpoint_path'],
-                config['task'], config['type'], epoch) )
+                join(config['checkpoint_path'],
+                '{}/{}-{}-{}.pth'.format(config['task'], config['type'], epoch))
+                )
 
         if epoch % config['evaluation_interval'] == 0:
             print("\n---- Evaluating Model ----")
             # Evaluate the model on the validation set
             results = evaluate( model, config )
-            present_results(results, config)
+            import pdb; pdb.set_trace()
 
 
 """
