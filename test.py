@@ -21,14 +21,11 @@ from torch.autograd import Variable
 import torch.optim as optim
 
 
-def evaluate(model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size, type, verbose=False):
+def evaluate(model, config, iou_thres, conf_thres, nms_thres, img_size, batch_size, type, verbose=False):
     model.eval()
 
     # Get dataloader
-    dataset = CSVDataset( path,
-        {'augment':False, 'multiscale':False,
-        'type':type} )
-
+    dataset = get_dataset(config, train=False)
     dataloader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, shuffle=False,
         num_workers=1, collate_fn=dataset.collate_fn
@@ -113,9 +110,8 @@ if __name__ == "__main__":
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    data_config = parse_data_config(config['data_config'].format(config['type']))
-    valid_path = data_config["valid"]
-    class_names = load_classes(data_config["names"])
+    data_config = config['data_config2']
+    class_names = load_classes( data_config['names'].format(config['type']) )
 
     # Initiate model
     model = make_model(config).to(device)
@@ -132,7 +128,7 @@ if __name__ == "__main__":
 
     precision, recall, AP, f1, ap_class, landm = evaluate(
         model,
-        path=valid_path,
+        config=config,
         iou_thres=config['iou_thres'],
         conf_thres=config['conf_thres'],
         nms_thres=config['nms_thres'],

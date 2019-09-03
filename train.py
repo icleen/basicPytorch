@@ -31,10 +31,10 @@ if __name__ == "__main__":
     parser.add_argument("--continu", type=str, default=None,
         help="if continuing training from checkpoint model")
     opt = parser.parse_args()
-    print(opt)
+    # print(opt)
 
     config = json.load(open(opt.config))
-    print(config)
+    # print(config)
 
     landm_set = ['twoobj', 'landmark', 'part2']
 
@@ -47,12 +47,8 @@ if __name__ == "__main__":
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Get data configuration
-    data_config = parse_data_config(
-        config['data_config'].format(config['type']) )
-    train_path = data_config["train"]
-    valid_path = data_config["valid"]
-    class_names = load_classes( data_config["names"] )
+    class_names = load_classes(
+        config['data_config2']['names'].format(config['type']) )
 
     # Initiate model
     model = make_model(config).to(device)
@@ -68,9 +64,7 @@ if __name__ == "__main__":
             model.load_darknet_weights(config['pretrained_weights'])
 
     # Get dataloader
-    dataset = CSVDataset( train_path,
-        {'augment':True, 'multiscale':config['multiscale_training'],
-        'type':config['type']} )
+    dataset = get_dataset( config )
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=config['batch_size'],
@@ -102,7 +96,7 @@ if __name__ == "__main__":
     ]
     val_acc = []
     modi = len(dataloader) // 5
-    with open('log.txt', 'w') as f:
+    with open('{}_log.txt'.format(config['type']), 'w') as f:
         f.write('')
     for epoch in range(config['epochs']):
         model.train()
@@ -186,7 +180,7 @@ if __name__ == "__main__":
             # Evaluate the model on the validation set
             precision, recall, AP, f1, ap_class, landm = evaluate(
                 model,
-                path=valid_path,
+                config=config,
                 iou_thres=0.5,
                 conf_thres=0.5,
                 nms_thres=0.5,

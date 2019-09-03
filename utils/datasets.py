@@ -15,6 +15,17 @@ import torchvision.transforms as transforms
 from utils.dataloaders import *
 
 
+def get_dataset(config, train=True):
+    path = config['data_config2']['train'].format( config['type'] )
+    if not train:
+        path = config['data_config2']['valid'].format( config['type'] )
+    if config['data_config2']['type'] == 'csv':
+        return CSVDataset( path, { 'augment':train, 'type':config['type'],
+            'multiscale':train&config['multiscale_training'] } )
+    else:
+        return None
+
+
 class ImageFolder(Dataset):
     def __init__(self, folder_path, img_size=416):
         self.files = sorted(glob.glob("%s/*.*" % folder_path))
