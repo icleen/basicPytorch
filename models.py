@@ -37,8 +37,10 @@ class ConfigModel(nn.Module):
         img_dim = x.shape[2]
         loss = 0
         layer_outputs, metric_outputs = [], []
-        normals = ['convolutional', 'upsample', 'maxpool', 'linear', 'flatten']
+        normals = ['convolutional', 'upsample', 'maxpool',
+            'linear', 'flatten', 'convtranspose2d']
         for i, (module_def, module) in enumerate(zip(self.module_defs, self.module_list)):
+            # print('x:',x.shape,module_def['type'])
             if module_def['type'] in normals:
                 x = module(x)
             elif module_def['type'] == 'route':
@@ -47,6 +49,15 @@ class ConfigModel(nn.Module):
             elif module_def['type'] == 'shortcut':
                 layer_i = int(module_def['from'])
                 x = layer_outputs[-1] + layer_outputs[layer_i]
+            elif module_def['type'] == 'latent':
+                # x, layer_loss = module[0](x, targets)
+                # loss += layer_loss
+                x = module(x)
+                # metric_outputs.append(x)
+            elif module_def['type'] == 'reconstruction':
+                x, layer_loss = module[0](x, targets)
+                loss += layer_loss
+                metric_outputs.append(x)
             elif module_def['type'] == 'classifier':
                 x, layer_loss = module[0](x, targets)
                 loss += layer_loss

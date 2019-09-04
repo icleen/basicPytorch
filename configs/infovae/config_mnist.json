@@ -2,11 +2,11 @@
   "task": "infovae",
   "type": "mnist",
 
-  "batch_size": 4,
-  "vbatch_size": 10,
+  "batch_size": 40,
+  "vbatch_size": 40,
   "model_def": "configs/{}/mnist.cfg",
 
-  "data_config": "configs/{}/data.txt",
+  "data_config": "/scratch/mnist/",
 
   "learning_rate": 0.0001,
   "n_cpu": 8,

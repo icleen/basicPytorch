@@ -23,19 +23,20 @@ def create_modules(module_defs):
     module_list = nn.ModuleList()
     for module_i, module_def in enumerate(module_defs):
         modules = nn.Sequential()
+        module_name = f"{module_def['type']}_{module_i}"
 
-        if module_def["type"] == "convolutional":
-            bn = int(module_def["batch_normalize"])
-            filters = int(module_def["filters"])
-            kernel_size = int(module_def["size"])
+        if module_def['type'] == 'convolutional':
+            bn = int(module_def['batch_normalize'])
+            filters = int(module_def['filters'])
+            kernel_size = int(module_def['size'])
             pad = (kernel_size - 1) // 2
             modules.add_module(
-                f"conv_{module_i}",
+                module_name,
                 nn.Conv2d(
                     in_channels=output_filters[-1],
                     out_channels=filters,
                     kernel_size=kernel_size,
-                    stride=int(module_def["stride"]),
+                    stride=int(module_def['stride']),
                     padding=pad,
                     bias=not bn,
                 ),
@@ -51,22 +52,43 @@ def create_modules(module_defs):
                     activations[module_def['activation']]
                 )
 
-        elif module_def["type"] == "maxpool":
-            kernel_size = int(module_def["size"])
-            stride = int(module_def["stride"])
+        elif module_def['type'] == 'convtranspose2d':
+            filters = int(module_def['filters'])
+            kernel_size = int(module_def['size'])
+            pad = (kernel_size - 1) // 2
+            modules.add_module(
+                module_name,
+                nn.ConvTranspose2d(
+                    in_channels=output_filters[-1],
+                    out_channels=filters,
+                    kernel_size=kernel_size,
+                    stride=int(module_def['stride']),
+                    padding=pad,
+                    output_padding=int(module_def['out_pad'])
+                )
+            )
+            if 'activation' in module_def:
+                modules.add_module(
+                    f"{module_def['activation']}_{module_i}",
+                    activations[module_def['activation']]
+                )
+
+        elif module_def['type'] == 'maxpool':
+            kernel_size = int(module_def['size'])
+            stride = int(module_def['stride'])
             if kernel_size == 2 and stride == 1:
                 modules.add_module( f"_debug_padding_{module_i}",
                     nn.ZeroPad2d((0, 1, 0, 1)) )
             maxpool = nn.MaxPool2d(kernel_size=kernel_size,
                 stride=stride, padding=int((kernel_size - 1) // 2))
-            modules.add_module(f"maxpool_{module_i}", maxpool)
+            modules.add_module(module_name, maxpool)
 
         elif module_def['type'] == 'linear':
             modules.add_module(
-                f"linear_{module_i}",
+                module_name,
                 nn.Linear(
-                    int(module_def["input"]),
-                    int(module_def["output"])
+                    int(module_def['input']),
+                    int(module_def['output'])
                 )
             )
             if 'activation' in module_def:
@@ -77,35 +99,45 @@ def create_modules(module_defs):
 
         elif module_def['type'] == 'flatten':
             dims = tuple( np.fromstring(module_def['dims'], dtype=int, sep=',') )
-            modules.add_module( f"{module_def['type']}_{module_i}", Flatten(dims) )
+            modules.add_module( module_name, FlattenLayer(dims) )
 
-        elif module_def["type"] == "upsample":
-            upsample = Upsample(scale_factor=int(module_def["stride"]), mode="nearest")
-            modules.add_module(f"upsample_{module_i}", upsample)
+        elif module_def['type'] == 'latent':
+            sample = int(module_def['sample'])
+            modules.add_module( module_name, LatentLayer(sample) )
 
-        elif module_def["type"] == "route":
-            layers = [int(x) for x in module_def["layers"].split(",")]
+        elif module_def['type'] == 'upsample':
+            upsample = Upsample(scale_factor=int(module_def['stride']), mode="nearest")
+            modules.add_module(module_name, upsample)
+
+        elif module_def['type'] == 'route':
+            layers = [int(x) for x in module_def['layers'].split(',')]
             filters = sum([output_filters[1:][i] for i in layers])
-            modules.add_module(f"route_{module_i}", EmptyLayer())
+            modules.add_module(module_name, EmptyLayer())
 
-        elif module_def["type"] == "shortcut":
-            filters = output_filters[1:][int(module_def["from"])]
-            modules.add_module(f"shortcut_{module_i}", EmptyLayer())
+        elif module_def['type'] == 'shortcut':
+            filters = output_filters[1:][int(module_def['from'])]
+            modules.add_module(module_name, EmptyLayer())
 
-        elif module_def["type"] == "classifier":
+        elif module_def['type'] == 'reconstruction':
             modules.add_module(
-                f"classifier_{module_i}",
+                module_name,
+                ReconstructionLayer(module_def['loss'])
+            )
+
+        elif module_def['type'] == 'classifier':
+            modules.add_module(
+                module_name,
                 ClassifyLayer(module_def['loss'])
             )
 
-        elif module_def["type"] == "yolo":
-            anchor_idxs = [int(x) for x in module_def["mask"].split(",")]
+        elif module_def['type'] == 'yolo':
+            anchor_idxs = [int(x) for x in module_def['mask'].split(',')]
             # Extract anchors
-            anchors = [int(x) for x in module_def["anchors"].split(",")]
+            anchors = [int(x) for x in module_def['anchors'].split(',')]
             anchors = [(anchors[i], anchors[i + 1]) for i in range(0, len(anchors), 2)]
             anchors = [anchors[i] for i in anchor_idxs]
-            num_classes = int(module_def["classes"])
-            img_size = int(hyperparams["height"])
+            num_classes = int(module_def['classes'])
+            img_size = int(hyperparams['height'])
             # Define detection layer
             if 'ftype' in module_def:
                 yolo_layer = YOLOLayer(anchors, num_classes, img_size, type=module_def['ftype'])
@@ -119,11 +151,11 @@ def create_modules(module_defs):
     return hyperparams, module_list
 
 
-class Flatten(nn.Module):
+class FlattenLayer(nn.Module):
     """docstring for Flatten."""
 
     def __init__(self, dims):
-        super(Flatten, self).__init__()
+        super(FlattenLayer, self).__init__()
         self.dims = dims
 
     def forward(self, x):
@@ -158,17 +190,26 @@ class LatentLayer(nn.Module):
         self.sample = sample
 
     def forward(self, x, targets=None):
+        if targets is not None:
+            # calculate KL divergence
+            dkl = torch.Tensor([0.0])
+            return x, dkl
         return x
 
 
-class DeconvLayer(nn.Module):
-    """Represents the latent space"""
+class ReconstructionLayer(nn.Module):
+    """Classifies"""
 
-    def __init__(self, sample):
-        super(DeconvLayer, self).__init__()
-        self.sample = sample
+    def __init__(self, loss):
+        super(ReconstructionLayer, self).__init__()
+        if loss == 'cross_entropy':
+            self.loss = nn.CrossEntropyLoss()
+        elif loss == 'mse':
+            self.loss = nn.MSELoss()
 
     def forward(self, x, targets=None):
+        if targets is not None:
+            return x, self.loss(x, targets)
         return x
 
 

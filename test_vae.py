@@ -43,18 +43,48 @@ def evaluate(model, config, verbose=False):
     for batch_i, (imgs, targets) in enumerate(dataloader):
 
         imgs = Variable(imgs.to(device), requires_grad=False)
-        targets = Variable(targets.to(device), requires_grad=False)
 
         with torch.no_grad():
-            outputs, loss = model(imgs, targets)
+            outputs, loss = model(imgs, imgs)
             vloss += loss.cpu().item()
-            preds = torch.argmax(outputs, -1)
-            labels += preds.tolist()
-            acc += (preds == targets.cpu()).sum().numpy()
-            loop.set_description( 'acc:{}/{}={:.2f}%'.format(acc,dlen,acc/dlen) )
+            loop.set_description( 'loss:{:.4f}'.format(
+                vloss/(batch_i+1) ) )
             loop.update(1)
     loop.close()
-    return acc/dlen, vloss/len(dataloader)
+    return vloss/len(dataloader)
+
+
+def detect_valid(model, config, verbose=False):
+    model.eval()
+
+    # Get dataloader
+    dataset = MNISTClasses( config['data_config'], train=False, augment=False )
+    dataloader = torch.utils.data.DataLoader(
+        dataset,
+        batch_size=config['batch_size'],
+        shuffle=False,
+        num_workers=1
+    )
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    dlen = len(dataset)/100
+    labels = []
+    acc = 0.0
+    vloss = 0.0
+    loop = tqdm.tqdm(total=len(dataloader), position=0)
+    for batch_i, (imgs, targets) in enumerate(dataloader):
+
+        imgs = Variable(imgs.to(device), requires_grad=False)
+
+        with torch.no_grad():
+            outputs, loss = model(imgs, imgs)
+            vloss += loss.cpu().item()
+            loop.set_description( 'loss:{:.4f}'.format(
+                vloss/(batch_i+1) ) )
+            loop.update(1)
+    loop.close()
+    return vloss/len(dataloader)
 
 
 if __name__ == "__main__":
@@ -84,4 +114,4 @@ if __name__ == "__main__":
     print("Compute mAP...")
 
     results = evaluate( model, config )
-    print('vloss:', results[1])
+    print('vloss:', results)

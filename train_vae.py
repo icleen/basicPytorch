@@ -88,9 +88,8 @@ if __name__ == "__main__":
             batches_done = len(dataloader) * epoch + batch_i
 
             imgs = Variable(imgs.to(device))
-            targets = Variable(targets.to(device), requires_grad=False)
 
-            outputs, loss = model(imgs, targets)
+            outputs, loss = model(imgs, imgs)
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
