@@ -50,9 +50,9 @@ class ConfigModel(nn.Module):
                 layer_i = int(module_def['from'])
                 x = layer_outputs[-1] + layer_outputs[layer_i]
             elif module_def['type'] == 'latent':
-                # x, layer_loss = module[0](x, targets)
-                # loss += layer_loss
-                x = module(x)
+                x, layer_loss = module[0](x, targets)
+                loss += layer_loss
+                # x = module(x)
                 # metric_outputs.append(x)
             elif module_def['type'] == 'reconstruction':
                 x, layer_loss = module[0](x, targets)

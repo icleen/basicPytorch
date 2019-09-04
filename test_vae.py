@@ -99,7 +99,7 @@ def generate(model, k=5):
         import pdb; pdb.set_trace()
 
         with torch.no_grad():
-            outputs = model.generate()
+            outputs = model.generate(1)
             loop.set_description( 'loss:{:.4f}'.format(
                 vloss/(batch_i+1) ) )
             loop.update(1)

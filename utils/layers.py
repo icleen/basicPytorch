@@ -102,11 +102,15 @@ def create_modules(module_defs):
             modules.add_module( module_name, FlattenLayer(dims) )
 
         elif module_def['type'] == 'latent':
-            sample = int(module_def['sample'])
-            modules.add_module( module_name, LatentLayer(sample) )
+            filters = int(module_def['repsize'])
+            modules.add_module(
+                module_name,
+                Latent2dLayer(filters, output_filters[-1])
+            )
 
         elif module_def['type'] == 'upsample':
-            upsample = Upsample(scale_factor=int(module_def['stride']), mode="nearest")
+            upsample = Upsample(
+                scale_factor=int(module_def['stride']), mode="nearest" )
             modules.add_module(module_name, upsample)
 
         elif module_def['type'] == 'route':
@@ -182,19 +186,47 @@ class EmptyLayer(nn.Module):
         super(EmptyLayer, self).__init__()
 
 
-class LatentLayer(nn.Module):
+class Latent2dLayer(nn.Module):
     """Represents the latent space"""
 
-    def __init__(self, sample):
-        super(LatentLayer, self).__init__()
-        self.sample = sample
+    def __init__(self, repsize, infilters, alpha=0.0, gamma=1.0, whsize=7):
+        super(Latent2dLayer, self).__init__()
+        self.repsize = repsize
+        self.alpha = alpha
+        self.gamma = gamma
+        self.whsize = whsize
+        self.mu = nn.Conv2d(
+            in_channels=infilters,
+            out_channels=repsize,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+        )
+        self.std = nn.Conv2d(
+            in_channels=infilters,
+            out_channels=repsize,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+        )
 
     def forward(self, x, targets=None):
+        """returns the z variable (latent space object)"""
+        mu, logvar = self.mu(x), self.std(x)
         if targets is not None:
             # calculate KL divergence
-            dkl = torch.Tensor([0.0])
-            return x, dkl
-        return x
+            std = torch.exp(0.5*logvar)
+            eps = torch.randn_like(std)
+            z = mu + eps*std
+            dkl = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+            loss = (1 - self.alpha) * dkl
+            # info = torch.Tensor([0.0])
+            # loss += (self.alpha + self.gamma - 1) * info
+            return z, loss
+        return mu
+
+    def generate(self, k=1):
+        return torch.randn(k, self.repsize, self.whsize, self.whsize).to(device)
 
 
 class ReconstructionLayer(nn.Module):
