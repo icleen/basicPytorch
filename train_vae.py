@@ -4,7 +4,7 @@ from models import *
 from utils.logger import *
 from utils.utils import *
 from utils.datasets import *
-from test_classifier import evaluate
+from test_vae import evaluate
 
 from terminaltables import AsciiTable
 
@@ -109,8 +109,8 @@ if __name__ == "__main__":
         if epoch % config['evaluation_interval'] == 0:
             results = evaluate( model, config )
             metrics['avg_loss'].append(avg_loss/len(dataloader))
-            metrics['vacc'].append(results[0])
-            metrics['vloss'].append(results[1])
+            # metrics['vacc'].append(results[0])
+            metrics['vloss'].append(results)
             with open(join(config['log_path'], 'log.txt'), 'w') as f:
                 f.write(str(metrics))
 

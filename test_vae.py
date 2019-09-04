@@ -7,6 +7,7 @@ from utils.parse_config import *
 
 import os
 import sys
+import cv2
 import time
 import json
 import datetime
@@ -74,12 +75,31 @@ def detect_valid(model, config, verbose=False):
     vloss = 0.0
     loop = tqdm.tqdm(total=len(dataloader), position=0)
     for batch_i, (imgs, targets) in enumerate(dataloader):
-
         imgs = Variable(imgs.to(device), requires_grad=False)
-
         with torch.no_grad():
             outputs, loss = model(imgs, imgs)
             vloss += loss.cpu().item()
+
+            # take the first img in each batch and save the predicted img
+            outimg = outputs[0].cpu()
+            outimg = outimg.permute(1, 2, 0).numpy()*255
+            # print(outimg.shape)
+            cv2.imwrite('output/recon_{}.png'.format(batch_i), outimg)
+
+            loop.set_description( 'loss:{:.4f}'.format(
+                vloss/(batch_i+1) ) )
+            loop.update(1)
+    loop.close()
+    return vloss/len(dataloader)
+
+
+def generate(model, k=5):
+    loop = tqdm.tqdm(total=k, position=0)
+    for gen_i in range(k):
+        import pdb; pdb.set_trace()
+
+        with torch.no_grad():
+            outputs = model.generate()
             loop.set_description( 'loss:{:.4f}'.format(
                 vloss/(batch_i+1) ) )
             loop.update(1)
@@ -113,5 +133,5 @@ if __name__ == "__main__":
 
     print("Compute mAP...")
 
-    results = evaluate( model, config )
+    results = detect_valid( model, config )
     print('vloss:', results)
