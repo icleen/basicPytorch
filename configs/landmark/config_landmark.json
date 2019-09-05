@@ -4,20 +4,20 @@
 
   "batch_size": 4,
   "vbatch_size": 10,
-  "model_def": "configs/{}/model.cfg",
+  "model_def": "configs/landmark/model_landmark.cfg",
 
-  "data_config": "configs/{}/data.txt",
-  "data_config2": {
+  "data_config": {
     "type": "csv",
     "classes": 2,
-    "train": "configs/{}/ntrain.csv",
-    "valid": "configs/{}/nvalid.csv",
-    "names": "configs/{}/classes.names"
+    "train": "configs/landmark/ntrain.csv",
+    "valid": "configs/landmark/nvalid.csv",
+    "names": "configs/landmark/classes.names"
   },
   "pretrained_weights": "weights/darknet53.conv.74",
 
   "learning_rate": 0.0001,
   "n_cpu": 8,
+  "input_dim": 3,
   "img_size": 416,
   "checkpoint_interval": 1,
   "evaluation_interval": 1,
@@ -31,7 +31,7 @@
   "nms_thres": 0.5,
 
   "checkpoint_path": "checkpoints/",
-  "log_path": "{}_logs",
-  "val_metrics": "{}_metrics.txt"
+  "log_path": "landmark_logs",
+  "val_metrics": "landmark_metrics.txt"
 
 }

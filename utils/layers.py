@@ -18,7 +18,8 @@ def create_modules(module_defs, config):
         'leaky': nn.LeakyReLU(0.1), 'relu': nn.ReLU(),
         'sigmoid': nn.Sigmoid(), 'tanh': nn.Tanh()
     }
-    output_filters = [int(config['img_dim'])]
+    filters = int(config['input_dim'])
+    output_filters = [filters]
     module_list = nn.ModuleList()
     for module_i, module_def in enumerate(module_defs):
         modules = nn.Sequential()
@@ -127,6 +128,12 @@ def create_modules(module_defs, config):
                 ReconstructionLayer(module_def['loss'])
             )
 
+        elif module_def['type'] == 'regressor':
+            modules.add_module(
+                module_name,
+                RegressLayer(module_def['loss'])
+            )
+
         elif module_def['type'] == 'classifier':
             modules.add_module(
                 module_name,
@@ -232,6 +239,22 @@ class ReconstructionLayer(nn.Module):
 
     def __init__(self, loss):
         super(ReconstructionLayer, self).__init__()
+        if loss == 'cross_entropy':
+            self.loss = nn.CrossEntropyLoss()
+        elif loss == 'mse':
+            self.loss = nn.MSELoss()
+
+    def forward(self, x, targets=None):
+        if targets is not None:
+            return x, self.loss(x, targets)
+        return x
+
+
+class RegressLayer(nn.Module):
+    """Regresses"""
+
+    def __init__(self, loss):
+        super(RegressLayer, self).__init__()
         if loss == 'cross_entropy':
             self.loss = nn.CrossEntropyLoss()
         elif loss == 'mse':

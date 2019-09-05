@@ -70,23 +70,26 @@ class ImageFolder(Dataset):
 
 
 class CSVDataset(Dataset):
-    def __init__(self, csv_path, kargs={}):
-        self.csv_path = csv_path
+    def __init__(self, config, train=True, augment=False):
+        csv_path = config['data_config']['train']
         with open(csv_path, 'r') as f:
             self.lines = [line for line in csv.reader(f, delimiter=',')]
 
-        self.kargs = kargs
-        self.loader = basic_loader
-        if 'type' in kargs:
-            if kargs['type'] in ['landmark', 'classes', 'twoobj']:
-                self.loader = hip_loader
-            elif kargs['type'] == 'part2':
-                self.loader = part2_loader
+        self.loader = BasicLoader()
+        if 'type' in config:
+            if config['task'] == 'regress':
+                if config['type'] == 'landmark':
+                    self.loader = LandmarkLoader(config['img_size'])
+            elif config['task'] == 'yolov3':
+                if config['type'] in ['landmark', 'classes', 'twoobj']:
+                    self.loader = HipLoader()
+                elif config['type'] == 'part2':
+                    self.loader = Part2Loader()
 
-        self.img_size = kargs['img_size'] if 'img_size' in kargs else 416
+        self.img_size = config['img_size'] if 'img_size' in config else 416
         self.max_objects = 100
-        self.augment = kargs['augment'] if 'augment' in kargs else False
-        self.multiscale = kargs['multiscale'] if 'multiscale' in kargs else True
+        self.augment = augment
+        self.multiscale = config['multiscale'] if 'multiscale' in config else True
         self.min_size = self.img_size - 3 * 32
         self.max_size = self.img_size + 3 * 32
         self.batch_count = 0
@@ -98,7 +101,7 @@ class CSVDataset(Dataset):
         line = self.lines[index % len(self.lines)]
         img_path = line[0].rstrip()
         label = line[1:]
-        img, targets = self.loader(img_path, label, self.augment)
+        img, targets = self.loader.load(img_path, label, self.augment)
         return img_path, img, targets
 
     def collate_fn(self, batch):
