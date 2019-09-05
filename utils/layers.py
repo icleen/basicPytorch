@@ -10,7 +10,7 @@ from utils.utils import build_targets
 from utils.utils import to_cpu
 
 
-def create_modules(module_defs, configs):
+def create_modules(module_defs, config):
     """
     Constructs module list of layer blocks from module configuration in module_defs
     """
@@ -18,7 +18,7 @@ def create_modules(module_defs, configs):
         'leaky': nn.LeakyReLU(0.1), 'relu': nn.ReLU(),
         'sigmoid': nn.Sigmoid(), 'tanh': nn.Tanh()
     }
-    output_filters = [int(configs['img_dim'])]
+    output_filters = [int(config['img_dim'])]
     module_list = nn.ModuleList()
     for module_i, module_def in enumerate(module_defs):
         modules = nn.Sequential()
