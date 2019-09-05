@@ -35,7 +35,7 @@ class MNISTClasses(Dataset):
             ]
         dotrans += [
             transforms.ToTensor(),
-            transforms.Lambda(expand3chans)
+            # transforms.Lambda(expand3chans)
         ]
         dotrans = transforms.Compose(dotrans)
         self.mnist = MNIST(root,

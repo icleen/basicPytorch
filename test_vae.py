@@ -47,13 +47,13 @@ def evaluate(model, config, verbose=False, save_imgs=0):
         imgs = Variable(imgs.to(device), requires_grad=False)
 
         with torch.no_grad():
-            outputs, loss = model(imgs, imgs)
+            outputs, loss, losses = model(imgs, imgs)
             vloss += loss.cpu().item()
 
             if saved < save_imgs:
                 # take the first img in each batch and save the predicted img
                 outimg = outputs[0].cpu()
-                outimg = outimg.permute(1, 2, 0).numpy()*255
+                outimg = (outimg.permute(1, 2, 0).numpy()*255).astype(np.uint8)
                 # print(outimg.shape)
                 cv2.imwrite('output/recon_{}.png'.format(batch_i), outimg)
                 saved += 1
@@ -69,7 +69,7 @@ def generate(model, config, k=1):
     model.eval()
     genimgs = model.generate(k=k).cpu()
     for genimg in genimgs:
-        genimg = genimg.permute(1, 2, 0).numpy()*255
+        genimg = (genimg.permute(1, 2, 0).numpy()*255).astype(np.uint8)
         cv2.imwrite('output/genimg_test.png', genimg)
 
 
@@ -96,6 +96,6 @@ if __name__ == "__main__":
         # Load checkpoint weights
         model.load_state_dict(torch.load(opt.weights_path))
 
-    results = detect_valid( model, config )
+    results = evaluate( model, config, save_imgs=10 )
     print('vloss:', results)
     generate(model, config)

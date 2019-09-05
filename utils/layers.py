@@ -10,7 +10,7 @@ from utils.utils import build_targets
 from utils.utils import to_cpu
 
 
-def create_modules(module_defs):
+def create_modules(module_defs, configs):
     """
     Constructs module list of layer blocks from module configuration in module_defs
     """
@@ -18,8 +18,7 @@ def create_modules(module_defs):
         'leaky': nn.LeakyReLU(0.1), 'relu': nn.ReLU(),
         'sigmoid': nn.Sigmoid(), 'tanh': nn.Tanh()
     }
-    hyperparams = module_defs.pop(0)
-    output_filters = [int(hyperparams["channels"])]
+    output_filters = [int(configs['img_dim'])]
     module_list = nn.ModuleList()
     for module_i, module_def in enumerate(module_defs):
         modules = nn.Sequential()
@@ -103,9 +102,11 @@ def create_modules(module_defs):
 
         elif module_def['type'] == 'latent':
             filters = int(module_def['repsize'])
+            alpha = float(module_def['alpha'])
+            gamma = float(module_def['gamma'])
             modules.add_module(
                 module_name,
-                Latent2dLayer(filters, output_filters[-1])
+                Latent2dLayer(filters, output_filters[-1], alpha=alpha, gamma=gamma)
             )
 
         elif module_def['type'] == 'upsample':
@@ -141,7 +142,7 @@ def create_modules(module_defs):
             anchors = [(anchors[i], anchors[i + 1]) for i in range(0, len(anchors), 2)]
             anchors = [anchors[i] for i in anchor_idxs]
             num_classes = int(module_def['classes'])
-            img_size = int(hyperparams['height'])
+            img_size = config['img_size']
             # Define detection layer
             if 'ftype' in module_def:
                 yolo_layer = YOLOLayer(anchors, num_classes, img_size, type=module_def['ftype'])
@@ -152,7 +153,7 @@ def create_modules(module_defs):
         module_list.append(modules)
         output_filters.append(filters)
 
-    return hyperparams, module_list
+    return module_list
 
 
 class FlattenLayer(nn.Module):
@@ -219,6 +220,7 @@ class Latent2dLayer(nn.Module):
             z = mu + eps*std
             dkl = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
             loss = (1 - self.alpha) * dkl
+            loss *= 0
             # info = torch.Tensor([0.0])
             # loss += (self.alpha + self.gamma - 1) * info
             return z, loss

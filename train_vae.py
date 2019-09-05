@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
             imgs = Variable(imgs.to(device))
 
-            outputs, loss = model(imgs, imgs)
+            outputs, loss, losses = model(imgs, imgs)
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()

@@ -26,7 +26,7 @@ class VAEModel(nn.Module):
         super(VAEModel, self).__init__()
         self.module_defs = parse_model_config(
             config['model_def'].format(config['task']) )
-        self.hyperparams, self.module_list = create_modules(self.module_defs)
+        self.module_list = create_modules(self.module_defs, config)
         latent = [m for m, moddef in enumerate(self.module_defs) if moddef['type'] == 'latent']
         latent = latent[0]
         self.decoder = self.module_list[latent+1:]
@@ -46,6 +46,7 @@ class VAEModel(nn.Module):
     def forward(self, x, targets=None, layer_outs=False):
         img_dim = x.shape[2]
         loss = 0
+        losses = []
         layer_outputs, metric_outputs = [], []
         zs = []
         normals = ['convolutional', 'upsample', 'maxpool',
@@ -63,12 +64,14 @@ class VAEModel(nn.Module):
                 x = layer_outputs[-1] + layer_outputs[layer_i]
             elif module_def['type'] == 'latent':
                 x, layer_loss = module[0](x, targets)
+                losses.append( ('latent', x) )
                 loss += layer_loss
                 zs.append(x)
                 # x = module(x)
                 # metric_outputs.append(x)
             elif module_def['type'] in outlays:
                 x, layer_loss = module[0](x, targets)
+                losses.append( ('reconstruction', x) )
                 loss += layer_loss
                 metric_outputs.append(x)
             layer_outputs.append(x)
@@ -76,7 +79,7 @@ class VAEModel(nn.Module):
         if layer_outs:
             return (metric_outputs, layer_outputs) \
                 if targets is None else (metric_outputs, loss, layer_outputs)
-        return metric_outputs if targets is None else (metric_outputs, loss)
+        return metric_outputs if targets is None else (metric_outputs, loss, losses)
 
 
 class ConfigModel(nn.Module):
@@ -86,7 +89,7 @@ class ConfigModel(nn.Module):
         super(ConfigModel, self).__init__()
         self.module_defs = parse_model_config(
             config['model_def'].format(config['task']) )
-        self.hyperparams, self.module_list = create_modules(self.module_defs)
+        self.module_list = create_modules(self.module_defs, config)
         self.metric_layers = [layer[0]
             for layer in self.module_list if hasattr(layer[0], 'metrics')]
         self.img_size = config['img_size']
@@ -222,16 +225,17 @@ class ConfigModel(nn.Module):
 class Darknet(nn.Module):
     """YOLOv3 object detection model"""
 
-    def __init__(self, config_path, img_size=416, type='normal'):
+    def __init__(self, config):
         super(Darknet, self).__init__()
-        self.module_defs = parse_model_config(config_path)
-        self.hyperparams, self.module_list = create_modules(self.module_defs)
+        self.module_defs = parse_model_config(
+            config['model_def'].format(config['task']))
+        self.module_list = create_modules(self.module_defs, config)
         self.yolo_layers = [layer[0]
             for layer in self.module_list if hasattr(layer[0], "metrics")]
-        self.img_size = img_size
+        self.img_size = config['img_size']
         self.seen = 0
         self.header_info = np.array([0, 0, 0, self.seen, 0], dtype=np.int32)
-        self.type = type
+        self.type = config['type']
 
     def forward(self, x, targets=None, layer_outs=False):
         img_dim = x.shape[2]
