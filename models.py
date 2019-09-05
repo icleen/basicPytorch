@@ -3,6 +3,7 @@ from __future__ import division
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.autograd import Variable
 import numpy as np
 
 from utils.parse_config import *
@@ -16,6 +17,66 @@ class BasicModel(nn.Module):
     def __init__(self, arg):
         super(BasicModel, self).__init__()
         self.arg = arg
+
+
+class VAEModel(nn.Module):
+    """model defined by configuration file"""
+
+    def __init__(self, config):
+        super(VAEModel, self).__init__()
+        self.module_defs = parse_model_config(
+            config['model_def'].format(config['task']) )
+        self.hyperparams, self.module_list = create_modules(self.module_defs)
+        latent = [m for m, moddef in enumerate(self.module_defs) if moddef['type'] == 'latent']
+        latent = latent[0]
+        self.decoder = self.module_list[latent+1:]
+        self.type = config['type']
+        self.gensize = 7
+        self.repsize = int(self.module_defs[latent]['repsize'])
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    def generate(self, k=1):
+        x = torch.randn(k, self.repsize, self.gensize, self.gensize)
+        x = Variable(x.to(self.device), requires_grad=False)
+        for i, module in enumerate(self.decoder):
+            # print('x:',x.shape,module)
+            x = module(x)
+        return x.detach()
+
+    def forward(self, x, targets=None, layer_outs=False):
+        img_dim = x.shape[2]
+        loss = 0
+        layer_outputs, metric_outputs = [], []
+        zs = []
+        normals = ['convolutional', 'upsample', 'maxpool',
+            'linear', 'flatten', 'convtranspose2d']
+        outlays = ['reconstruction', 'classifier']
+        for i, (module_def, module) in enumerate(zip(self.module_defs, self.module_list)):
+            # print('x:',x.shape,module_def['type'])
+            if module_def['type'] in normals:
+                x = module(x)
+            elif module_def['type'] == 'route':
+                x = torch.cat([layer_outputs[int(layer_i)]
+                    for layer_i in module_def['layers'].split(",")], 1)
+            elif module_def['type'] == 'shortcut':
+                layer_i = int(module_def['from'])
+                x = layer_outputs[-1] + layer_outputs[layer_i]
+            elif module_def['type'] == 'latent':
+                x, layer_loss = module[0](x, targets)
+                loss += layer_loss
+                zs.append(x)
+                # x = module(x)
+                # metric_outputs.append(x)
+            elif module_def['type'] in outlays:
+                x, layer_loss = module[0](x, targets)
+                loss += layer_loss
+                metric_outputs.append(x)
+            layer_outputs.append(x)
+        metric_outputs = to_cpu(torch.cat(metric_outputs, 1))
+        if layer_outs:
+            return (metric_outputs, layer_outputs) \
+                if targets is None else (metric_outputs, loss, layer_outputs)
+        return metric_outputs if targets is None else (metric_outputs, loss)
 
 
 class ConfigModel(nn.Module):

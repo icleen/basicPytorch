@@ -189,12 +189,11 @@ class EmptyLayer(nn.Module):
 class Latent2dLayer(nn.Module):
     """Represents the latent space"""
 
-    def __init__(self, repsize, infilters, alpha=0.0, gamma=1.0, whsize=7):
+    def __init__(self, repsize, infilters, alpha=0.0, gamma=1.0):
         super(Latent2dLayer, self).__init__()
         self.repsize = repsize
         self.alpha = alpha
         self.gamma = gamma
-        self.whsize = whsize
         self.mu = nn.Conv2d(
             in_channels=infilters,
             out_channels=repsize,
@@ -224,9 +223,6 @@ class Latent2dLayer(nn.Module):
             # loss += (self.alpha + self.gamma - 1) * info
             return z, loss
         return mu
-
-    def generate(self, k=1):
-        return torch.randn(k, self.repsize, self.whsize, self.whsize).to(device)
 
 
 class ReconstructionLayer(nn.Module):

@@ -4,7 +4,7 @@ from models import *
 from utils.logger import *
 from utils.utils import *
 from utils.datasets import *
-from test_vae import evaluate
+from test_vae import evaluate, generate
 
 from terminaltables import AsciiTable
 
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Initiate model
-    model = ConfigModel( config ).to(device)
+    model = VAEModel( config ).to(device)
     model.apply(weights_init_normal)
 
     # If specified we start from checkpoint
@@ -107,12 +107,15 @@ if __name__ == "__main__":
                 )
 
         if epoch % config['evaluation_interval'] == 0:
-            results = evaluate( model, config )
+            results = evaluate( model, config, save_imgs=2 )
             metrics['avg_loss'].append(avg_loss/len(dataloader))
             # metrics['vacc'].append(results[0])
             metrics['vloss'].append(results)
             with open(join(config['log_path'], 'log.txt'), 'w') as f:
                 f.write(str(metrics))
+
+            generate(model, config)
+
 
 
 """
