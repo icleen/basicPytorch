@@ -43,8 +43,6 @@ def create_modules(module_defs, configs):
             if bn:
                 modules.add_module( f"batch_norm_{module_i}",
                     nn.BatchNorm2d(filters, momentum=0.9, eps=1e-5) )
-            # if module_def["activation"] == "leaky":
-            #     modules.add_module( f"leaky_{module_i}", nn.LeakyReLU(0.1) )
             if 'activation' in module_def:
                 modules.add_module(
                     f"{module_def['activation']}_{module_i}",
@@ -209,6 +207,7 @@ class Latent2dLayer(nn.Module):
             stride=1,
             padding=0,
         )
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def forward(self, x, targets=None):
         """returns the z variable (latent space object)"""
@@ -216,11 +215,12 @@ class Latent2dLayer(nn.Module):
         if targets is not None:
             # calculate KL divergence
             std = torch.exp(0.5*logvar)
+            # std = logvar.mul(0.5).exp_()
             eps = torch.randn_like(std)
+            # eps = torch.randn(*mu.size()).to(self.device)
             z = mu + eps*std
             dkl = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
             loss = (1 - self.alpha) * dkl
-            loss *= 0
             # info = torch.Tensor([0.0])
             # loss += (self.alpha + self.gamma - 1) * info
             return z, loss
