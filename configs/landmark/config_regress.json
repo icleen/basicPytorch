@@ -2,8 +2,8 @@
   "task": "regress",
   "type": "landmark",
 
-  "batch_size": 4,
-  "vbatch_size": 10,
+  "batch_size": 30,
+  "vbatch_size": 30,
   "model_def": "configs/landmark/model_regress.cfg",
 
   "data_config": {

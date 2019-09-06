@@ -48,11 +48,10 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     class_names = load_classes(
-        config['data_config2']['names'].format(config['type']) )
+        config['data_config']['names'].format(config['type']) )
 
     # Initiate model
-    model = Darknet(config['model_def'].format(config['type']),
-        type=config['type'] ).to(device)
+    model = Darknet( config ).to(device)
     model.apply(weights_init_normal)
 
     # If specified we start from checkpoint
@@ -65,10 +64,11 @@ if __name__ == "__main__":
             model.load_darknet_weights(config['pretrained_weights'])
 
     # Get dataloader
-    dataset = CSVDataset(
-        config['data_config2']['train'].format( config['type'] ),
-        { 'augment':True, 'type':config['type'],
-        'multiscale':config['multiscale_training'] } )
+    # dataset = CSVDataset(
+        # config['data_config']['train'].format( config['type'] ),
+        # { 'augment':True, 'type':config['type'],
+        # 'multiscale':config['multiscale_training'] } )
+    dataset = CSVDataset( config, train=True, augment=True )
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=config['batch_size'],
@@ -111,7 +111,7 @@ if __name__ == "__main__":
             imgs = Variable(imgs.to(device))
             targets = Variable(targets.to(device), requires_grad=False)
 
-            loss, outputs = model(imgs, targets)
+            outputs, loss = model(imgs, targets)
             loss.backward()
 
             if batches_done % config['gradient_accumulations']:
@@ -185,12 +185,6 @@ if __name__ == "__main__":
             precision, recall, AP, f1, ap_class, landm = evaluate(
                 model,
                 config=config,
-                iou_thres=0.5,
-                conf_thres=0.5,
-                nms_thres=0.5,
-                img_size=config['img_size'],
-                batch_size=config['vbatch_size'],
-                type=config['type'],
             )
             evaluation_metrics = [
                 ("val_precision", precision.mean()),

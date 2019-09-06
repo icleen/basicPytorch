@@ -75,6 +75,7 @@ class LandmarkLoader(BasicLoader):
             label += np.random.normal(0.0, 0.002, label.shape)
 
         img = transforms.ToTensor()(img)
+        img = img / 255.0
         if augment and np.random.random() < 0.5:
             img = torch.flip(img, [-1])
             label[1::2] = 1 - label[1::2]
@@ -85,9 +86,8 @@ class LandmarkLoader(BasicLoader):
 class HipLoader(BasicLoader):
     """docstring for HipLoader."""
 
-    def __init__(self, arg):
+    def __init__(self):
         super(HipLoader, self).__init__()
-        self.arg = arg
 
     def load(self, img, label, augment=False):
         #  Image

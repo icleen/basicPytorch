@@ -481,8 +481,9 @@ def fake_target_build(target, img_size):
 
 def post_process(pred_boxes):
     for b, boxes in enumerate(pred_boxes):
-        nboxes = torch.FloatTensor(2, boxes.size(1)).fill_(0)
-        for i in range(len(boxes)-1, -1, -1):
-            nboxes[int(boxes[i, -1])] = boxes[i]
-        pred_boxes[b] = nboxes
+        if boxes is not None:
+            nboxes = torch.FloatTensor(2, boxes.size(1)).fill_(0)
+            for i in range(len(boxes)-1, -1, -1):
+                nboxes[int(boxes[i, -1])] = boxes[i]
+            pred_boxes[b] = nboxes
     return pred_boxes

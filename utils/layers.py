@@ -131,7 +131,7 @@ def create_modules(module_defs, config):
         elif module_def['type'] == 'regressor':
             modules.add_module(
                 module_name,
-                RegressLayer(module_def['loss'])
+                RegressLayer(module_def['loss'], config['img_size'])
             )
 
         elif module_def['type'] == 'classifier':
@@ -253,8 +253,9 @@ class ReconstructionLayer(nn.Module):
 class RegressLayer(nn.Module):
     """Regresses"""
 
-    def __init__(self, loss):
+    def __init__(self, loss, img_size):
         super(RegressLayer, self).__init__()
+        self.img_size = img_size
         if loss == 'cross_entropy':
             self.loss = nn.CrossEntropyLoss()
         elif loss == 'mse':
@@ -262,7 +263,7 @@ class RegressLayer(nn.Module):
 
     def forward(self, x, targets=None):
         if targets is not None:
-            return x, self.loss(x, targets)
+            return x, self.loss(x*self.img_size, targets*self.img_size)
         return x
 
 

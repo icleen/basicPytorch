@@ -71,7 +71,8 @@ class ImageFolder(Dataset):
 
 class CSVDataset(Dataset):
     def __init__(self, config, train=True, augment=False):
-        csv_path = config['data_config']['train']
+        tvp = 'train' if train else 'valid'
+        csv_path = config['data_config'][tvp]
         with open(csv_path, 'r') as f:
             self.lines = [line for line in csv.reader(f, delimiter=',')]
 

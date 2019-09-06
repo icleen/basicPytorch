@@ -21,18 +21,24 @@ from torch.autograd import Variable
 import torch.optim as optim
 
 
-def evaluate(model, config, iou_thres, conf_thres, nms_thres, img_size, batch_size, type, verbose=False):
+def evaluate(model, config, verbose=False):
     model.eval()
 
     # Get dataloader
-    dataset = CSVDataset(
-        config['data_config2']['valid'].format( config['type'] ),
-        { 'augment':True, 'type':config['type'],
-        'multiscale':config['multiscale_training'] } )
+    # dataset = CSVDataset(
+    #     config['data_config']['valid'].format( config['type'] ),
+    #     { 'augment':True, 'type':config['type'],
+    #     'multiscale':config['multiscale_training'] } )
+    dataset = CSVDataset( config, train=False, augment=False )
     dataloader = torch.utils.data.DataLoader(
-        dataset, batch_size=batch_size, shuffle=False,
+        dataset, batch_size=config['vbatch_size'], shuffle=False,
         num_workers=1, collate_fn=dataset.collate_fn
     )
+
+    conf_thres = config['conf_thres']
+    iou_thres = config['iou_thres']
+    nms_thres = config['nms_thres']
+    img_size = config['img_size']
 
     Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 
@@ -55,6 +61,7 @@ def evaluate(model, config, iou_thres, conf_thres, nms_thres, img_size, batch_si
             else:
                 outputs = non_max_suppression(outputs,
                     conf_thres=conf_thres, nms_thres=nms_thres)
+
             outputs = post_process(outputs)
 
         # Extract labels
@@ -113,11 +120,11 @@ if __name__ == "__main__":
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    data_config = config['data_config2']
-    class_names = load_classes( data_config['names'].format(config['type']) )
+    class_names = load_classes(
+        config['data_config']['names'].format(config['type']) )
 
     # Initiate model
-    model = make_model(config).to(device)
+    model = Darknet( config ).to(device)
     if opt.weights_path.endswith(".weights"):
         # Load darknet weights
         model.load_darknet_weights(opt.weights_path)
@@ -127,17 +134,9 @@ if __name__ == "__main__":
 
     print('model type', model.type)
 
-    print("Compute mAP...")
-
     precision, recall, AP, f1, ap_class, landm = evaluate(
         model,
         config=config,
-        iou_thres=config['iou_thres'],
-        conf_thres=config['conf_thres'],
-        nms_thres=config['nms_thres'],
-        img_size=config['img_size'],
-        batch_size=config['vbatch_size'],
-        type=config['type'],
         verbose=True,
     )
 
