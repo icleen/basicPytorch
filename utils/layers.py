@@ -29,7 +29,6 @@ def create_modules(module_defs, config):
             bn = int(module_def['batch_normalize'])
             filters = int(module_def['filters'])
             kernel_size = int(module_def['size'])
-            pad = (kernel_size - 1) // 2
             modules.add_module(
                 module_name,
                 nn.Conv2d(
@@ -37,7 +36,7 @@ def create_modules(module_defs, config):
                     out_channels=filters,
                     kernel_size=kernel_size,
                     stride=int(module_def['stride']),
-                    padding=pad,
+                    padding=int(module_def['pad']),
                     bias=not bn,
                 ),
             )
@@ -53,7 +52,6 @@ def create_modules(module_defs, config):
         elif module_def['type'] == 'convtranspose2d':
             filters = int(module_def['filters'])
             kernel_size = int(module_def['size'])
-            pad = (kernel_size - 1) // 2
             modules.add_module(
                 module_name,
                 nn.ConvTranspose2d(
@@ -61,7 +59,7 @@ def create_modules(module_defs, config):
                     out_channels=filters,
                     kernel_size=kernel_size,
                     stride=int(module_def['stride']),
-                    padding=pad,
+                    padding=int(module_def['pad']),
                     output_padding=int(module_def['out_pad'])
                 )
             )
@@ -78,7 +76,7 @@ def create_modules(module_defs, config):
                 modules.add_module( f"_debug_padding_{module_i}",
                     nn.ZeroPad2d((0, 1, 0, 1)) )
             maxpool = nn.MaxPool2d(kernel_size=kernel_size,
-                stride=stride, padding=int((kernel_size - 1) // 2))
+                stride=stride, padding=int(module_def['pad']))
             modules.add_module(module_name, maxpool)
 
         elif module_def['type'] == 'linear':
@@ -380,16 +378,26 @@ class YOLOLayer(nn.Module):
             return output, 0
         else:
             total_loss = 0
-            built = build_targets(
-                pred_boxes=pred_boxes,
-                pred_cls=pred_cls,
-                target=targets,
-                anchors=self.scaled_anchors,
-                ignore_thres=self.ignore_thres,
-                isLandmark=(self.type!='normal'),
-            )
-            iou_scores, class_mask, obj_mask, noobj_mask = built[:4]
-            tx, ty, tw, th, tcls, tconf = built[4:10]
+            if self.type != 'normal':
+                built = build_targets_twoobj(
+                    pred_boxes=pred_boxes,
+                    pred_cls=pred_cls,
+                    target=targets,
+                    anchors=self.scaled_anchors,
+                    ignore_thres=self.ignore_thres,
+                )
+                iou_scores, class_mask, obj_mask, noobj_mask = built[:4]
+                txl, tyl, tx, ty, tw, th, tcls, tconf = built[4:]
+            else:
+                built = build_targets(
+                    pred_boxes=pred_boxes,
+                    pred_cls=pred_cls,
+                    target=targets,
+                    anchors=self.scaled_anchors,
+                    ignore_thres=self.ignore_thres,
+                )
+                iou_scores, class_mask, obj_mask, noobj_mask = built[:4]
+                tx, ty, tw, th, tcls, tconf = built[4:]
 
             loss_x = self.mse_loss(x[obj_mask], tx[obj_mask])
             loss_y = self.mse_loss(y[obj_mask], ty[obj_mask])
