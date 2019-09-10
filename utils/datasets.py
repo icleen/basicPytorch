@@ -90,7 +90,7 @@ class CSVDataset(Dataset):
         self.img_size = config['img_size'] if 'img_size' in config else 416
         self.max_objects = 100
         self.augment = augment
-        self.multiscale = config['multiscale'] if 'multiscale' in config else True
+        self.multiscale = config['multiscale_training'] if 'multiscale_training' in config else True
         self.min_size = self.img_size - 3 * 32
         self.max_size = self.img_size + 3 * 32
         self.batch_count = 0
