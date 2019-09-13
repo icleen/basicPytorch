@@ -25,6 +25,23 @@ class BasicLoader(object):
         label = torch.ToTensor(int(label))
         return img, label
 
+    def augment(self, img, boxes):
+        rnd = np.random.random()
+        if rnd < 0.1:
+            img = cv2.medianBlur(img, 5)
+        elif rnd < 0.2:
+            img = cv2.blur(img,(7,7))
+        elif rnd < 0.5:
+            img = cv2.GaussianBlur(img,(7,7),0)
+        # if np.random.random() < 0.5:
+        #     img, boxes = rotate(img, boxes, np.random.normal(0.0, 7.0))
+        boxes[:,1:] += np.random.normal(0.0, 0.002, boxes[:,1:].shape)
+        img = transforms.ToTensor()(img)
+        boxes = torch.from_numpy(boxes)
+        if np.random.random() < 0.5:
+            img, boxes = horisontal_flip(img, boxes)
+        return img, boxes
+
 class MNISTLoader(BasicLoader):
     """docstring for MNISTLoader."""
 
@@ -33,20 +50,25 @@ class MNISTLoader(BasicLoader):
 
     def load(self, img, label, augment=False):
         if augment:
-            img = img.numpy()[0]
-            rnd = np.random.random()
-            if rnd < 0.1:
-                img = cv2.medianBlur(img, 5)
-            elif rnd < 0.2:
-                img = cv2.blur(img,(7,7))
-            elif rnd < 0.5:
-                img = cv2.GaussianBlur(img,(7,7),0)
-            if np.random.random() < 0.5:
-                img = rotate(img, np.random.normal(0.0, 7.0))
-            img = np.stack((img,)*3, axis=-1)
-            img = img.reshape((3, self.height, self.width))
-            img = transforms.ToTensor()(img)
+            img, label = self.augment(img, label)
         return img, label
+
+    def augment(self, img, label):
+        img = img.numpy()[0]
+        rnd = np.random.random()
+        if rnd < 0.1:
+            img = cv2.medianBlur(img, 5)
+        elif rnd < 0.2:
+            img = cv2.blur(img,(7,7))
+        elif rnd < 0.5:
+            img = cv2.GaussianBlur(img,(7,7),0)
+        if np.random.random() < 0.5:
+            img = rotate(img, np.random.normal(0.0, 7.0))
+        img = np.stack((img,)*3, axis=-1)
+        img = img.reshape((3, self.height, self.width))
+        img = transforms.ToTensor()(img)
+        return img, label
+
 
 class LandmarkLoader(BasicLoader):
     """docstring for LandmarkLoader."""
@@ -75,7 +97,7 @@ class LandmarkLoader(BasicLoader):
             label += np.random.normal(0.0, 0.002, label.shape)
 
         img = transforms.ToTensor()(img)
-        img = img / 255.0
+        # img = img / 255.0
         if augment and np.random.random() < 0.5:
             img = torch.flip(img, [-1])
             label[1::2] = 1 - label[1::2]
@@ -105,21 +127,10 @@ class HipLoader(BasicLoader):
 
         # Apply augmentations
         if augment:
-            rnd = np.random.random()
-            if rnd < 0.1:
-                img = cv2.medianBlur(img, 5)
-            elif rnd < 0.2:
-                img = cv2.blur(img,(7,7))
-            elif rnd < 0.5:
-                img = cv2.GaussianBlur(img,(7,7),0)
-            # if np.random.random() < 0.5:
-            #     img, boxes = rotate(img, boxes, np.random.normal(0.0, 7.0))
-            boxes[:,1:] += np.random.normal(0.0, 0.002, boxes[:,1:].shape)
-
-        img = transforms.ToTensor()(img)
-        boxes = torch.from_numpy(boxes)
-        if augment and np.random.random() < 0.5:
-            img, boxes = horisontal_flip(img, boxes)
+            img, boxes = self.augment(img, boxes)
+        else:
+            img = transforms.ToTensor()(img)
+            boxes = torch.from_numpy(boxes)
 
         targets = None
         if len(label)%7==0:

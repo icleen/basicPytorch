@@ -4,27 +4,35 @@
 
   "batch_size": 4,
   "vbatch_size": 10,
-  "model_def": "configs/{}/model.cfg",
+  "model_def": "configs/hipobj/model.cfg",
 
-  "data_config": "configs/{}/data.txt",
+  "data_config": {
+    "type": "csv",
+    "classes": 2,
+    "train": "configs/hipobj/train.csv",
+    "valid": "configs/hipobj/valid.csv",
+    "names": "configs/hipobj/classes.names"
+  },
+
   "pretrained_weights": "weights/darknet53.conv.74",
 
   "learning_rate": 0.0001,
   "n_cpu": 8,
+  "input_dim": 3,
   "img_size": 416,
   "checkpoint_interval": 1,
   "evaluation_interval": 1,
   "compute_map": false,
-  "multiscale_training": true,
+  "multiscale_training": false,
   "gradient_accumulations": 2,
-  "epochs": 40,
+  "epochs": 10,
 
   "iou_thres": 0.5,
   "conf_thres": 0.8,
   "nms_thres": 0.5,
 
   "checkpoint_path": "checkpoints/",
-  "log_path": "{}_logs",
-  "val_metrics": "{}_metrics.txt"
+  "log_path": "hipobj_logs",
+  "val_metrics": "hipobj_metrics.txt"
 
 }
