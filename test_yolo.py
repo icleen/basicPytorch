@@ -25,10 +25,6 @@ def evaluate(model, config, verbose=False):
     model.eval()
 
     # Get dataloader
-    # dataset = CSVDataset(
-    #     config['data_config']['valid'].format( config['type'] ),
-    #     { 'augment':True, 'type':config['type'],
-    #     'multiscale':config['multiscale_training'] } )
     dataset = CSVDataset( config, train=False, augment=False )
     dataloader = torch.utils.data.DataLoader(
         dataset, batch_size=config['vbatch_size'], shuffle=False,

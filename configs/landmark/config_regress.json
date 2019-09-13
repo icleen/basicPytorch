@@ -2,9 +2,9 @@
   "task": "regress",
   "type": "landmark",
 
-  "batch_size": 30,
-  "vbatch_size": 30,
-  "model_def": "configs/landmark/model_regress.cfg",
+  "batch_size": 4,
+  "vbatch_size": 10,
+  "model_def": "configs/landmark/model_regresss.cfg",
 
   "data_config": {
     "type": "csv",
@@ -13,14 +13,17 @@
     "valid": "configs/landmark/nvalid.csv",
     "names": "configs/landmark/classes.names"
   },
+  "pretrained_weights": "weights/darknet53.conv.74",
 
   "learning_rate": 0.0001,
   "n_cpu": 8,
   "input_dim": 3,
-  "img_size": 256,
+  "img_size": 416,
   "checkpoint_interval": 1,
   "evaluation_interval": 1,
-  "epochs": 40,
+  "multiscale_training": true,
+  "gradient_accumulations": 2,
+  "epochs": 20,
 
   "checkpoint_path": "checkpoints/",
   "log_path": "regress_logs",

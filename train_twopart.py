@@ -1,7 +1,7 @@
 from __future__ import division
 
 from models import *
-from utils.logger import *
+# from utils.logger import *
 from utils.utils import *
 from utils.datasets import *
 from test_yolo import evaluate
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     os.makedirs('output', exist_ok=True)
     os.makedirs(config['checkpoint_path'], exist_ok=True)
 
-    logger = Logger(config['log_path'])
+    # logger = Logger(config['log_path'])
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -57,17 +57,27 @@ if __name__ == "__main__":
     model_yolo.apply(weights_init_normal)
     # If specified we start from checkpoint
     if opt.continu:
-        config['pretrained_weights'] = opt.continu
-    if 'pretrained_weights' in config:
-        if config['pretrained_weights'].endswith(".pth"):
-            model_yolo.load_state_dict(torch.load(config['pretrained_weights']))
+        config1['pretrained_weights'] = opt.continu
+    if 'pretrained_weights' in config1:
+        config1['pretrained_weights'] = config['pretrained_weights']['yolo']
+        if config1['pretrained_weights'].endswith(".pth"):
+            model_yolo.load_state_dict(torch.load(config1['pretrained_weights']))
         else:
-            model_yolo.load_darknet_weights(config['pretrained_weights'])
+            model_yolo.load_darknet_weights(config1['pretrained_weights'])
 
     config2 = config
     config2['model_def'] = config['model_def']['regress']
     model_regress = ConfigModel( config2 ).to(device)
     model_regress.apply(weights_init_normal)
+    # If specified we start from checkpoint
+    if opt.continu:
+        config2['pretrained_weights'] = opt.continu
+    if 'pretrained_weights' in config2:
+        config2['pretrained_weights'] = config['pretrained_weights']['regress']
+        if config2['pretrained_weights'].endswith(".pth"):
+            model_regress.load_state_dict(torch.load(config2['pretrained_weights']))
+        else:
+            model_regress.load_darknet_weights(config2['pretrained_weights'])
 
     # Get dataloader
     dataset = CSVDataset( config, train=True, augment=True )
@@ -80,7 +90,8 @@ if __name__ == "__main__":
         collate_fn=collate_twopart,
     )
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'])
+    optimizer_yolo = torch.optim.Adam(model_yolo.parameters(), lr=config['learning_rate'])
+    optimizer_regress = torch.optim.Adam(model_regress.parameters(), lr=config['learning_rate'])
 
     metrics_yolo = [
         "grid_size",
@@ -114,20 +125,23 @@ if __name__ == "__main__":
         for batch_i, (_, imgs, targets) in enumerate(dataloader):
             batches_done = len(dataloader) * epoch + batch_i
 
-            imgs1 = Variable(imgs[0].to(device))
-            imgs2 = Variable(imgs[1].to(device))
-            imgs3 = Variable(imgs[2].to(device))
-            targets1 = Variable(targets[0].to(device), requires_grad=False)
-            targets2 = Variable(targets[1].to(device), requires_grad=False)
-            targets3 = Variable(targets[2].to(device), requires_grad=False)
-
-            outputs, loss = model(imgs, targets)
+            imgsy = Variable(imgs[0].to(device))
+            targetsy = Variable(targets[0].to(device), requires_grad=False)
+            outputs, loss = model_yolo(imgsy, targetsy)
             loss.backward()
-
             if batches_done % config['gradient_accumulations']:
                 # Accumulates gradient before each step
-                optimizer.step()
-                optimizer.zero_grad()
+                optimizer_yolo.step()
+                optimizer_yolo.zero_grad()
+
+            imgsr = Variable(imgs[1].to(device))
+            targetsr = Variable(targets[1].to(device), requires_grad=False)
+            outputs, loss = model_regress(imgsr, targetsr)
+            loss.backward()
+            if batches_done % config['gradient_accumulations']:
+                # Accumulates gradient before each step
+                optimizer_regress.step()
+                optimizer_regress.zero_grad()
 
             # ----------------
             #   Log progress
@@ -151,13 +165,13 @@ if __name__ == "__main__":
                 metric_table += [[metric, *row_metrics]]
 
                 # Tensorboard logging
-                tensorboard_log = []
-                for j, yolo in enumerate(model.yolo_layers):
-                    for name, metric in yolo.metrics.items():
-                        if name != "grid_size":
-                            tensorboard_log += [(f"{name}_{j+1}", metric)]
-                tensorboard_log += [("loss", loss.item())]
-                logger.list_of_scalars_summary(tensorboard_log, batches_done)
+                # tensorboard_log = []
+                # for j, yolo in enumerate(model.yolo_layers):
+                #     for name, metric in yolo.metrics.items():
+                #         if name != "grid_size":
+                #             tensorboard_log += [(f"{name}_{j+1}", metric)]
+                # tensorboard_log += [("loss", loss.item())]
+                # logger.list_of_scalars_summary(tensorboard_log, batches_done)
 
             log_str += AsciiTable(metric_table).table
             log_str += f"\nTotal loss {loss.item()}"
@@ -174,7 +188,7 @@ if __name__ == "__main__":
                 if opt.verbose:
                     print(log_str)
                 else:
-                    with open('{}_log.txt'.format(config['type']), 'a+') as f:
+                    with open(join(config['log_path'], 'log.txt'), 'w') as f:
                         f.write(log_str)
                         f.write('\n')
                     print(log_str2)
@@ -193,7 +207,7 @@ if __name__ == "__main__":
             print("\n---- Evaluating Model ----")
             # Evaluate the model on the validation set
             precision, recall, AP, f1, ap_class, landm = evaluate(
-                model,
+                model_yolo, model_regress,
                 config=config,
             )
             evaluation_metrics = [
@@ -204,9 +218,9 @@ if __name__ == "__main__":
             ]
             if model.type in landm_set:
                 evaluation_metrics.append( ("landm", landm.mean()) )
-            logger.list_of_scalars_summary(evaluation_metrics, epoch)
+            # logger.list_of_scalars_summary(evaluation_metrics, epoch)
             val_acc.append(evaluation_metrics)
-            with open(config['val_metrics'].format(config['type']), 'w') as f:
+            with open(config['val_metrics'], 'w') as f:
                 f.write(str(val_acc))
             # Print class APs and mAP
             ap_table = [["Index", "Class name", "AP"]]

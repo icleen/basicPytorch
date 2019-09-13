@@ -168,6 +168,16 @@ def get_land_statistics(outputs, targets):
     return np.mean(land_dists, axis=1)
 
 
+def get_regress_statistics(outputs, targets):
+    stats = np.zeros(outputs.size(0))
+    for oi in range(outputs.size(0)):
+        for oj in range(2):
+            dist = torch.dist(outputs[oi,oj:oj+2], targets[oi,oj:oj+2], 2)
+            stats[oi] += dist.numpy()
+        stats[oi] /= 2
+    return stats
+
+
 def get_batch_statistics(outputs, targets, iou_threshold):
     """ Compute true positives, predicted scores and predicted labels per sample """
     batch_metrics = []
@@ -554,3 +564,7 @@ def post_process(pred_boxes):
                 nboxes[int(boxes[i, -1])] = boxes[i]
             pred_boxes[b] = nboxes
     return pred_boxes
+
+
+def regress_postp(preds):
+    return torch.mean(preds.view(-1, 3, 4), dim=1)

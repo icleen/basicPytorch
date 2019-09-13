@@ -36,49 +36,31 @@ def evaluate(model, config, verbose=False, save_imgs=0):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     dlen = len(dataset)/100
-    labels = []
+    stats = []
     saved = 0
     acc = 0.0
     vloss = 0.0
     loop = tqdm.tqdm(total=len(dataloader), position=0)
     for batch_i, (imgp, imgs, targets) in enumerate(dataloader):
 
-        imgs = Variable(imgs.to(device), requires_grad=False)
-        targets = Variable(targets.to(device), requires_grad=False)
+        imgsv = Variable(imgs.to(device), requires_grad=False)
+        targetsv = Variable(targets.to(device), requires_grad=False)
 
         with torch.no_grad():
-            outputs, loss = model(imgs, targets)
+            outputs, loss = model(imgsv, targetsv)
             loss = loss.cpu().item()
             vloss += loss
-            labels += outputs.tolist()
+            outputs = regress_postp(outputs)
+            stats += list(get_regress_statistics(outputs*imgs.size(-1), targets*imgs.size(-1)))
+
 
             if saved < save_imgs:
                 # take the first img in each batch and save the predicted img
                 img = cv2.imread(imgp[0], 1)
-                # print(loss)
-                #
-                # print('---normed space---')
                 pred = outputs[0].cpu().numpy()
                 label = targets[0].cpu().numpy()
-                # print(pred)
-                # print(label)
-                # loss = np.power(pred - label, 2).mean()
-                # print(loss)
-                # print(loss*img.shape[0])
-                # loss = nn.MSELoss()(torch.from_numpy(pred), torch.from_numpy(label))
-                # print(loss)
-                # print(loss*img.shape[0])
-                #
-                # print('---regular space---')
                 pred *= img.shape[0]
                 label *= img.shape[0]
-                # print(pred)
-                # print(label)
-                # loss = np.power(pred - label, 2).mean()
-                # print(loss)
-                # loss = nn.MSELoss()(torch.from_numpy(pred), torch.from_numpy(label))
-                # print(loss)
-
                 img = cv2.circle(img,
                     (pred[0], pred[1]), 5, (0,255,0), 1)
                 img = cv2.circle(img,
@@ -91,10 +73,18 @@ def evaluate(model, config, verbose=False, save_imgs=0):
                 cv2.imwrite('output/regimg_{}.png'.format(batch_i), img)
                 saved += 1
 
-            loop.set_description( 'vloss:{}'.format(loss) )
+            loop.set_description( 'vloss:{:3f},avg_dist:{:3f}'.format(loss, np.mean(stats)) )
             loop.update(1)
     loop.close()
-    return vloss/len(dataloader)
+    stats = np.array(stats)
+    dist5 = np.sum(stats<5.0)/len(stats)
+    dist10 = np.sum(stats<10.0)/len(stats)
+    print('regress dists:')
+    print('\tunder5:', dist5)
+    print('\tunder10:', dist10)
+    # print('\tavg_dist:', np.mean(stats))
+    print('\tmax_dist:', np.max(stats))
+    return vloss/len(dataloader), np.mean(stats)
 
 
 if __name__ == "__main__":

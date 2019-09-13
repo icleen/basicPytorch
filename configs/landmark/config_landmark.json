@@ -21,10 +21,9 @@
   "img_size": 416,
   "checkpoint_interval": 1,
   "evaluation_interval": 1,
-  "compute_map": false,
   "multiscale_training": true,
   "gradient_accumulations": 2,
-  "epochs": 40,
+  "epochs": 20,
 
   "iou_thres": 0.5,
   "conf_thres": 0.8,

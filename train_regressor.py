@@ -57,7 +57,7 @@ if __name__ == "__main__":
         if config['pretrained_weights'].endswith(".pth"):
             model.load_state_dict(torch.load(config['pretrained_weights']))
         else:
-            model.load_darknet_weights(config['pretrained_weights'])
+            model.load_weights(config['pretrained_weights'])
 
     # Get dataloader
     dataset = CSVDataset( config, train=True, augment=True )

@@ -23,7 +23,7 @@
   "checkpoint_interval": 1,
   "evaluation_interval": 1,
   "compute_map": false,
-  "multiscale_training": false,
+  "multiscale_training": true,
   "gradient_accumulations": 2,
   "epochs": 10,
 
