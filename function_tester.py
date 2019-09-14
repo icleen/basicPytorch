@@ -35,13 +35,12 @@ if __name__ == "__main__":
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    data_config = parse_data_config(config['data_config'].format(config['type']))
-    valid_path = data_config["valid"]
-    class_names = load_classes(data_config["names"])
+    class_names = load_classes(
+        config['data_config']['names'].format(config['type']) )
 
-    dataset = CSVDataset( valid_path,
-        {'augment':False, 'multiscale':False,
-        'type':config['type']} )
+    # dataset = CSVDataset( valid_path,
+    #     {'augment':False, 'multiscale':False,
+    #     'type':config['type']} )
 
     # for _ in range(100):
     #     inst = dataset[random.randrange(len(dataset))]
@@ -50,8 +49,8 @@ if __name__ == "__main__":
     #         import pdb; pdb.set_trace()
 
 
-    model = make_model(config).to(device)
-    print(model)
+    # model = make_model(config).to(device)
+    # print(model)
 
     # model = Darknet(
     #     config['model_def'].format(config['type']),
@@ -82,3 +81,20 @@ if __name__ == "__main__":
     #     print('\tunder10:', dist10)
     #     print('\tavg_dist:', np.mean(landm))
     #     print('\tmax_dist:', np.max(landm))
+
+    dataset = TwoPartDataset( config, train=True, augment=True )
+    dataloader = torch.utils.data.DataLoader(
+        dataset,
+        batch_size=2,
+        shuffle=True,
+        num_workers=config['n_cpu'],
+        pin_memory=True,
+        collate_fn=dataset.collate_fn,
+    )
+
+    for batch_i, (_, imgs, targets) in enumerate(dataset):
+        import pdb; pdb.set_trace()
+        break
+
+    for batch_i, (_, imgs, targets) in enumerate(dataloader):
+        import pdb; pdb.set_trace()

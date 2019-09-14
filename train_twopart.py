@@ -4,7 +4,7 @@ from models import *
 # from utils.logger import *
 from utils.utils import *
 from utils.datasets import *
-from test_yolo import evaluate
+from test_twopart import evaluate
 
 from terminaltables import AsciiTable
 
@@ -51,43 +51,47 @@ if __name__ == "__main__":
         config['data_config']['names'].format(config['type']) )
 
     # Initiate model
-    config1 = config
-    config1['model_def'] = config['model_def']['yolo']
-    model_yolo = Darknet( config1 ).to(device)
+    model_def = config['model_def']
+    img_size = config['img_size']
+    config['model_def'] = model_def['yolo']
+    config['img_size'] = img_size['yolo']
+    model_yolo = Darknet( config ).to(device)
     model_yolo.apply(weights_init_normal)
     # If specified we start from checkpoint
     if opt.continu:
-        config1['pretrained_weights'] = opt.continu
-    if 'pretrained_weights' in config1:
-        config1['pretrained_weights'] = config['pretrained_weights']['yolo']
-        if config1['pretrained_weights'].endswith(".pth"):
-            model_yolo.load_state_dict(torch.load(config1['pretrained_weights']))
+        config['pretrained_weights'] = opt.continu
+    if 'pretrained_weights' in config:
+        # config['pretrained_weights'] = config['pretrained_weights']['yolo']
+        if config['pretrained_weights'].endswith(".pth"):
+            model_yolo.load_state_dict(torch.load(config['pretrained_weights']))
         else:
-            model_yolo.load_darknet_weights(config1['pretrained_weights'])
+            model_yolo.load_darknet_weights(config['pretrained_weights'])
 
-    config2 = config
-    config2['model_def'] = config['model_def']['regress']
-    model_regress = ConfigModel( config2 ).to(device)
+    config['model_def'] = model_def['regress']
+    config['img_size'] = img_size['regress']
+    model_regress = ConfigModel( config ).to(device)
     model_regress.apply(weights_init_normal)
     # If specified we start from checkpoint
-    if opt.continu:
-        config2['pretrained_weights'] = opt.continu
-    if 'pretrained_weights' in config2:
-        config2['pretrained_weights'] = config['pretrained_weights']['regress']
-        if config2['pretrained_weights'].endswith(".pth"):
-            model_regress.load_state_dict(torch.load(config2['pretrained_weights']))
-        else:
-            model_regress.load_darknet_weights(config2['pretrained_weights'])
+    # if opt.continu:
+    #     config['pretrained_weights'] = opt.continu
+    # if 'pretrained_weights' in config:
+    #     config['pretrained_weights'] = config['pretrained_weights']['regress']
+    #     if config['pretrained_weights'].endswith(".pth"):
+    #         model_regress.load_state_dict(torch.load(config['pretrained_weights']))
+    #     else:
+    #         model_regress.load_darknet_weights(config['pretrained_weights'])
+
+    config['img_size'] = img_size
 
     # Get dataloader
-    dataset = CSVDataset( config, train=True, augment=True )
+    dataset = TwoPartDataset( config, train=True, augment=True )
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=config['batch_size'],
         shuffle=True,
         num_workers=config['n_cpu'],
         pin_memory=True,
-        collate_fn=collate_twopart,
+        collate_fn=dataset.collate_fn,
     )
 
     optimizer_yolo = torch.optim.Adam(model_yolo.parameters(), lr=config['learning_rate'])
@@ -120,8 +124,10 @@ if __name__ == "__main__":
     with open('{}_log.txt'.format(config['type']), 'w') as f:
         f.write('')
     for epoch in range(config['epochs']):
-        model.train()
+        model_yolo.train()
+        model_regress.train()
         start_time = time.time()
+        loop = tqdm.tqdm(total=len(dataloader), position=0)
         for batch_i, (_, imgs, targets) in enumerate(dataloader):
             batches_done = len(dataloader) * epoch + batch_i
 
@@ -129,6 +135,7 @@ if __name__ == "__main__":
             targetsy = Variable(targets[0].to(device), requires_grad=False)
             outputs, loss = model_yolo(imgsy, targetsy)
             loss.backward()
+            yolo_loss = loss.cpu().item()
             if batches_done % config['gradient_accumulations']:
                 # Accumulates gradient before each step
                 optimizer_yolo.step()
@@ -138,70 +145,81 @@ if __name__ == "__main__":
             targetsr = Variable(targets[1].to(device), requires_grad=False)
             outputs, loss = model_regress(imgsr, targetsr)
             loss.backward()
+            regress_loss = loss.cpu().item()
             if batches_done % config['gradient_accumulations']:
                 # Accumulates gradient before each step
                 optimizer_regress.step()
                 optimizer_regress.zero_grad()
 
-            # ----------------
-            #   Log progress
-            # ----------------
+            # # ----------------
+            # #   Log progress
+            # # ----------------
+            #
+            # log_str = "\n---- [Epoch %d/%d, Batch %d/%d] ----\n" % (epoch,
+            #     config['epochs'], batch_i, len(dataloader))
+            # log_str2 = "[Epoch %d/%d, Batch %d/%d] -" % (epoch,
+            #     config['epochs'], batch_i, len(dataloader))
+            #
+            # metric_table = [["Metrics", *[f"YOLO Layer {i}"
+            #     for i in range(len(model_yolo.yolo_layers))]]]
+            #
+            # # Log metrics at each YOLO layer
+            # for i, metric in enumerate(metrics_yolo):
+            #     formats = {m: "%.6f" for m in metrics_yolo}
+            #     formats["grid_size"] = "%2d"
+            #     formats["cls_acc"] = "%.2f%%"
+            #     row_metrics = [formats[metric] % yolo.metrics.get(metric, 0)
+            #         for yolo in model_yolo.yolo_layers]
+            #     metric_table += [[metric, *row_metrics]]
+            #
+            #     # Tensorboard logging
+            #     # tensorboard_log = []
+            #     # for j, yolo in enumerate(model.yolo_layers):
+            #     #     for name, metric in yolo.metrics.items():
+            #     #         if name != "grid_size":
+            #     #             tensorboard_log += [(f"{name}_{j+1}", metric)]
+            #     # tensorboard_log += [("loss", loss.item())]
+            #     # logger.list_of_scalars_summary(tensorboard_log, batches_done)
+            #
+            # log_str += AsciiTable(metric_table).table
+            # log_str += f"\nTotal loss {loss.item()}"
+            # log_str2 += f" Totloss {loss.item()}"
+            #
+            # # Determine approximate time left for epoch
+            # epoch_batches_left = len(dataloader) - (batch_i + 1)
+            # secs=epoch_batches_left*(time.time()-start_time)/(batch_i + 1)
+            # time_left = datetime.timedelta(seconds=secs)
+            # log_str += f"\n---- ETA {time_left}"
+            # log_str2 += f" - ETA {time_left}"
+            #
+            # if batch_i % modi == 0:
+            #     if opt.verbose:
+            #         print(log_str)
+            #     else:
+            #         with open(join(config['log_path'], 'log.txt'), 'w') as f:
+            #             f.write(log_str)
+            #             f.write('\n')
+            #         print(log_str2)
+            # # print(log_str)
+            #
+            # model_yolo.seen += imgs.size(0)
 
-            log_str = "\n---- [Epoch %d/%d, Batch %d/%d] ----\n" % (epoch,
-                config['epochs'], batch_i, len(dataloader))
-            log_str2 = "[Epoch %d/%d, Batch %d/%d] -" % (epoch,
-                config['epochs'], batch_i, len(dataloader))
+            loop.set_description(
+                'ep:{},yolo_l:{:.3f},reg_l:{:.3f}'.format(
+                    epoch, yolo_loss, regress_loss ) )
+            loop.update(1)
 
-            metric_table = [["Metrics", *[f"YOLO Layer {i}"
-                for i in range(len(model.yolo_layers))]]]
-
-            # Log metrics at each YOLO layer
-            for i, metric in enumerate(metrics_yolo):
-                formats = {m: "%.6f" for m in metrics_yolo}
-                formats["grid_size"] = "%2d"
-                formats["cls_acc"] = "%.2f%%"
-                row_metrics = [formats[metric] % yolo.metrics.get(metric, 0)
-                    for yolo in model.yolo_layers]
-                metric_table += [[metric, *row_metrics]]
-
-                # Tensorboard logging
-                # tensorboard_log = []
-                # for j, yolo in enumerate(model.yolo_layers):
-                #     for name, metric in yolo.metrics.items():
-                #         if name != "grid_size":
-                #             tensorboard_log += [(f"{name}_{j+1}", metric)]
-                # tensorboard_log += [("loss", loss.item())]
-                # logger.list_of_scalars_summary(tensorboard_log, batches_done)
-
-            log_str += AsciiTable(metric_table).table
-            log_str += f"\nTotal loss {loss.item()}"
-            log_str2 += f" Totloss {loss.item()}"
-
-            # Determine approximate time left for epoch
-            epoch_batches_left = len(dataloader) - (batch_i + 1)
-            secs=epoch_batches_left*(time.time()-start_time)/(batch_i + 1)
-            time_left = datetime.timedelta(seconds=secs)
-            log_str += f"\n---- ETA {time_left}"
-            log_str2 += f" - ETA {time_left}"
-
-            if batch_i % modi == 0:
-                if opt.verbose:
-                    print(log_str)
-                else:
-                    with open(join(config['log_path'], 'log.txt'), 'w') as f:
-                        f.write(log_str)
-                        f.write('\n')
-                    print(log_str2)
-            # print(log_str)
-
-            model.seen += imgs.size(0)
+        loop.close()
 
         if epoch % config['checkpoint_interval'] == 0:
-            torch.save(model.state_dict(),
-                config['checkpoint_path'] + f"yolov3_%s_%d.pth" % (
-                    config['type'], epoch) )
-            # torch.save(model.state_dict(),
-            #     f"checkpoints/yolov3_ckpt_%d.pth" % epoch)
+            torch.save(model_yolo.state_dict(),
+                join(config['checkpoint_path'],
+                '{}-{}-{}.pth'.format(config['task'], 'yolo', epoch))
+            )
+            torch.save(model_regress.state_dict(),
+                join(config['checkpoint_path'],
+                '{}-{}-{}.pth'.format(config['task'], 'regress', epoch))
+            )
 
         if epoch % config['evaluation_interval'] == 0:
             print("\n---- Evaluating Model ----")
@@ -215,9 +233,8 @@ if __name__ == "__main__":
                 ("val_recall", recall.mean()),
                 ("val_mAP", AP.mean()),
                 ("val_f1", f1.mean()),
+                ("landm", landm.mean()),
             ]
-            if model.type in landm_set:
-                evaluation_metrics.append( ("landm", landm.mean()) )
             # logger.list_of_scalars_summary(evaluation_metrics, epoch)
             val_acc.append(evaluation_metrics)
             with open(config['val_metrics'], 'w') as f:

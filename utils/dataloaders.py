@@ -144,8 +144,9 @@ class HipLoader(BasicLoader):
 class Part2Loader(BasicLoader):
     """docstring for Part2Loader."""
 
-    def __init__(self):
+    def __init__(self, img_size):
         super(Part2Loader, self).__init__()
+        self.img_size = (img_size, img_size)
 
     def load(self, img, label, augment=False):
         #  Image
@@ -160,18 +161,18 @@ class Part2Loader(BasicLoader):
         img2 = img[int(minxy[1,1]):int(maxxy[1,1]), int(minxy[1,0]):int(maxxy[1,0])]
         if img1.shape[0] < 1 or img1.shape[1] < 1 or img2.shape[0] < 1 or img2.shape[1] < 1:
             import pdb; pdb.set_trace()
-        boxes[:,1:3] *= img.shape[0]
-        if (boxes[:,1:3] < minxy).any():
-            boxes[:,1:3] = np.maximum(boxes[:,1:3], minxy)
-        if (boxes[:,1:3] > maxxy).any():
-            boxes[:,1:3] = np.minimum(boxes[:,1:3], maxxy)
-        boxes[:,1:3] = boxes[:,1:3] - minxy
-        boxes[:,1:3] = boxes[:,1:3] / np.array([[img1.shape[1], img1.shape[0]],
+        boxes = boxes[:, 1:3]
+        boxes *= img.shape[0]
+        if (boxes < minxy).any():
+            boxes = np.maximum(boxes, minxy)
+        if (boxes > maxxy).any():
+            boxes = np.minimum(boxes, maxxy)
+        boxes = boxes - minxy
+        boxes = boxes / np.array([[img1.shape[1], img1.shape[0]],
                                                 [img2.shape[1], img2.shape[0]]])
-        boxes[:,1:3] = np.minimum(boxes[:,1:3], 1)
-
-        boxes = boxes[:, :3]
-        boxes = np.pad(boxes, ((0,0),(0,2)), 'constant', constant_values=0.1)
+        boxes = np.minimum(boxes, 1)
+        img1 = cv2.resize(img1, self.img_size, interpolation=cv2.INTER_CUBIC)
+        img2 = cv2.resize(img2, self.img_size, interpolation=cv2.INTER_CUBIC)
 
         # Apply augmentations
         if augment:
@@ -187,16 +188,12 @@ class Part2Loader(BasicLoader):
                 img2 = cv2.GaussianBlur(img2,(7,7),0)
             # if np.random.random() < 0.5:
             #     img, boxes = rotate(img, boxes, np.random.normal(0.0, 7.0))
-            boxes[:,1:] += np.random.normal(0.0, 0.002, boxes[:,1:].shape)
+            boxes += np.random.normal(0.0, 0.002, boxes.shape)
 
         img1 = transforms.ToTensor()(img1)
-        # img2 = transforms.ToTensor()(img2)
-        boxes = torch.from_numpy(boxes)
-        # if augment and np.random.random() < 0.5:
-        #     img, targets = horisontal_flip(img, boxes)
-
-        # targets = torch.zeros((len(boxes), 6))
-        targets = torch.zeros((1, 6))
-        targets[0, 1:] = boxes[0:1]
-        # import pdb; pdb.set_trace()
-        return img1, targets
+        img2 = transforms.ToTensor()(img2)
+        if img1.shape != img2.shape:
+            print('not same:', img1.shape, img2.shape)
+        img = torch.stack([img1, img2])
+        targets = torch.FloatTensor(boxes)
+        return img, targets

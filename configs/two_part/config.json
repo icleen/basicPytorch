@@ -2,10 +2,10 @@
   "task": "two_part",
   "type": "two_part",
 
-  "batch_size": 30,
-  "vbatch_size": 30,
+  "batch_size": 2,
+  "vbatch_size": 8,
   "model_def": {
-    "yolo": "configs/two_part/model_regress.cfg",
+    "yolo": "configs/two_part/model_yolo.cfg",
     "regress": "configs/two_part/model_regress.cfg"
   },
 
@@ -19,9 +19,12 @@
   "pretrained_weights": "weights/darknet53.conv.74",
 
   "learning_rate": 0.0001,
-  "n_cpu": 8,
+  "n_cpu": 1,
   "input_dim": 3,
-  "img_size": 416,
+  "img_size": {
+    "yolo": 416,
+    "regress": 216
+  },
   "checkpoint_interval": 1,
   "evaluation_interval": 1,
   "compute_map": false,

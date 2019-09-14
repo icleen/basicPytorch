@@ -123,3 +123,74 @@ class CSVDataset(Dataset):
         # imgs = torch.stack([img for img in imgs])
         self.batch_count += 1
         return paths, imgs, targets
+
+
+class TwoPartDataset(Dataset):
+    def __init__(self, config, train=True, augment=False):
+        tvp = 'train' if train else 'valid'
+        csv_path = config['data_config'][tvp]
+        with open(csv_path, 'r') as f:
+            self.lines = [line for line in csv.reader(f, delimiter=',')]
+
+        self.img_sizey = config['img_size']['yolo'] if 'img_size' in config else 416
+        self.img_sizer = config['img_size']['regress'] if 'img_size' in config else 416
+
+        self.hiploader = HipLoader()
+        self.twploader = Part2Loader(self.img_sizer)
+
+        self.max_objects = 100
+        self.augment = augment
+        self.multiscale = config['multiscale_training'] if 'multiscale_training' in config else False
+        self.multiscale = self.multiscale & train
+        self.min_sizey = self.img_sizey - 3 * 32
+        self.max_sizey = self.img_sizey + 3 * 32
+        self.min_sizer = self.img_sizer - 3 * 32
+        self.max_sizer = self.img_sizer + 3 * 32
+        self.batch_count = 0
+
+    def __len__(self):
+        return len(self.lines)
+
+    def __getitem__(self, index):
+        line = self.lines[index % len(self.lines)]
+        img_path = line[0].rstrip()
+        label = line[1:]
+        imgh, targetsh = self.hiploader.load(img_path, label, self.augment)
+        self.twploader.load(img_path, label, self.augment)
+        imgt, targetst = self.twploader.load(img_path, label, self.augment)
+        return img_path, [imgh, imgt], [targetsh, targetst]
+
+    def collate_fn(self, batch):
+        paths, imgs, targets = list(zip(*batch))
+        imgsy = []
+        imgsr = []
+        for img in imgs:
+            imgsy += [img[0]]
+            imgsr += [img[1][0], img[1][1]]
+
+        targetsy = [tar[0] for tar in targets]
+        targetsr = [tar[1] for tar in targets]
+        # # Remove empty placeholder targets
+        # targetsy = [boxes for boxes in targetsy if boxes is not None]
+        # Add sample index to targets
+        for i, boxes in enumerate(targetsy):
+            boxes[:, 0] = i
+        # targetsy = torch.stack(targetsy)
+        targetsy = torch.cat(targetsy, 0)
+        targetsr = torch.cat(targetsr, 0)
+        # Selects new image size every tenth batch
+        if self.multiscale and self.batch_count % 10 == 0:
+            self.img_sizey = random.choice(
+                range(self.min_sizey, self.max_sizey + 1, 32) )
+
+        # Selects new image size every tenth batch
+        if self.multiscale and self.batch_count % 10 == 0:
+            self.img_sizer = random.choice(
+                range(self.min_sizer, self.max_sizer + 1, 32) )
+
+        # Resize images to input shape
+        imgsy = torch.stack([resize(img, self.img_sizey) for img in imgsy])
+        imgsr = torch.stack(imgsr)
+        # imgs = torch.stack([img for img in imgs])
+        self.batch_count += 1
+        return paths, (imgsy, imgsr), (targetsy, targetsr)

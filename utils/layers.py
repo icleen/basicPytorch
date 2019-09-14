@@ -312,7 +312,6 @@ class YOLOLayer(nn.Module):
         self.anchor_h = self.scaled_anchors[:, 1:2].view((1, self.num_anchors, 1, 1))
 
     def forward(self, x, targets=None, img_dim=None):
-
         if self.type == 'normal':
             return self.normal_forward(x, targets, img_dim)
         else:
