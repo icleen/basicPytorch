@@ -41,7 +41,7 @@ def evaluate(model_yolo, model_regress, config, verbose=False, save_imgs=0):
     nms_thres = config['nms_thres']
     img_size = config['img_size']['yolo']
 
-    Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     labels = []
     sample_metrics = []  # List of tuples (TP, confs, pred)
