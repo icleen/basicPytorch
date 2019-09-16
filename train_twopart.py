@@ -9,6 +9,7 @@ from test_twopart import evaluate
 from terminaltables import AsciiTable
 
 import os
+import os.path as op
 import sys
 import time
 import json
@@ -25,7 +26,7 @@ import torch.optim as optim
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", type=str,
-        default="configs/twoobj/config_twoobj.json", help="path to config file")
+        default="configs/two_part/config.json", help="path to config file")
     parser.add_argument("-v", "--verbose", default=False,
         help="if print all info")
     parser.add_argument("--continu", type=str, default=None,
@@ -196,7 +197,7 @@ if __name__ == "__main__":
             #     if opt.verbose:
             #         print(log_str)
             #     else:
-            #         with open(join(config['log_path'], 'log.txt'), 'w') as f:
+            #         with open(op.join(config['log_path'], 'log.txt'), 'w') as f:
             #             f.write(log_str)
             #             f.write('\n')
             #         print(log_str2)
@@ -213,11 +214,11 @@ if __name__ == "__main__":
 
         if epoch % config['checkpoint_interval'] == 0:
             torch.save(model_yolo.state_dict(),
-                join(config['checkpoint_path'],
+                op.join(config['checkpoint_path'],
                 '{}-{}-{}.pth'.format(config['task'], 'yolo', epoch))
             )
             torch.save(model_regress.state_dict(),
-                join(config['checkpoint_path'],
+                op.join(config['checkpoint_path'],
                 '{}-{}-{}.pth'.format(config['task'], 'regress', epoch))
             )
 
@@ -245,14 +246,13 @@ if __name__ == "__main__":
                 ap_table += [[c, class_names[c], "%.5f" % AP[i]]]
             print(AsciiTable(ap_table).table)
             print(f"---- mAP {AP.mean()}")
-            if model.type in landm_set:
-                dist5 = np.sum(landm<5.0)/len(landm)
-                dist10 = np.sum(landm<10.0)/len(landm)
-                print('landmark dists:')
-                print('\tunder5:', dist5)
-                print('\tunder10:', dist10)
-                print('\tavg_dist:', np.mean(landm))
-                print('\tmax_dist:', np.max(landm))
+            dist5 = np.sum(landm<5.0)/len(landm)
+            dist10 = np.sum(landm<10.0)/len(landm)
+            print('landmark dists:')
+            print('\tunder5:', dist5)
+            print('\tunder10:', dist10)
+            print('\tavg_dist:', np.mean(landm))
+            print('\tmax_dist:', np.max(landm))
 
 
 """

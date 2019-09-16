@@ -82,10 +82,7 @@ class CSVDataset(Dataset):
                 if config['type'] == 'landmark':
                     self.loader = LandmarkLoader(config['img_size'])
             elif config['task'] == 'yolov3':
-                if config['type'] == 'two_part':
-                    self.loader = Part2Loader()
-                else:
-                    self.loader = HipLoader()
+                self.loader = HipLoader()
 
         self.img_size = config['img_size'] if 'img_size' in config else 416
         self.max_objects = 100

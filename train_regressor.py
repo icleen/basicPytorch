@@ -26,7 +26,7 @@ import torch.optim as optim
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", type=str,
-        default="configs/mnist/config.json", help="path to config file")
+        default="configs/landmark/config_regress.json", help="path to config file")
     parser.add_argument("-v", "--verbose", default=False,
         help="if print all info")
     parser.add_argument("--continu", type=str, default=None,
