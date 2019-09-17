@@ -1,0 +1,39 @@
+{
+  "task": "yolov3",
+  "type": "twolands",
+
+  "batch_size": 4,
+  "vbatch_size": 10,
+  "model_def": "configs/twolands/model.cfg",
+
+  "data_config": {
+    "type": "csv",
+    "classes": 2,
+    "landmarks": 4,
+    "train": "/scratch/hip_data/alt/train/",
+    "valid": "/scratch/hip_data/alt/valid/",
+    "names": "configs/twoobj/classes.names"
+  },
+
+  "pretrained_weights": "weights/darknet53.conv.74",
+
+  "learning_rate": 0.0001,
+  "n_cpu": 8,
+  "input_dim": 3,
+  "img_size": 416,
+  "checkpoint_interval": 1,
+  "evaluation_interval": 1,
+  "compute_map": false,
+  "multiscale_training": true,
+  "gradient_accumulations": 2,
+  "epochs": 10,
+
+  "iou_thres": 0.5,
+  "conf_thres": 0.8,
+  "nms_thres": 0.5,
+
+  "checkpoint_path": "checkpoints/",
+  "log_path": "twolands_logs",
+  "val_metrics": "twolands_metrics.txt"
+
+}

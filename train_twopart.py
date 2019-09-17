@@ -9,7 +9,7 @@ from test_twopart import evaluate
 from terminaltables import AsciiTable
 
 import os
-import os.path as op
+import os.path as osp
 import sys
 import time
 import json
@@ -152,74 +152,22 @@ if __name__ == "__main__":
                 optimizer_regress.step()
                 optimizer_regress.zero_grad()
 
-            # # ----------------
-            # #   Log progress
-            # # ----------------
-            #
-            # log_str = "\n---- [Epoch %d/%d, Batch %d/%d] ----\n" % (epoch,
-            #     config['epochs'], batch_i, len(dataloader))
-            # log_str2 = "[Epoch %d/%d, Batch %d/%d] -" % (epoch,
-            #     config['epochs'], batch_i, len(dataloader))
-            #
-            # metric_table = [["Metrics", *[f"YOLO Layer {i}"
-            #     for i in range(len(model_yolo.yolo_layers))]]]
-            #
-            # # Log metrics at each YOLO layer
-            # for i, metric in enumerate(metrics_yolo):
-            #     formats = {m: "%.6f" for m in metrics_yolo}
-            #     formats["grid_size"] = "%2d"
-            #     formats["cls_acc"] = "%.2f%%"
-            #     row_metrics = [formats[metric] % yolo.metrics.get(metric, 0)
-            #         for yolo in model_yolo.yolo_layers]
-            #     metric_table += [[metric, *row_metrics]]
-            #
-            #     # Tensorboard logging
-            #     # tensorboard_log = []
-            #     # for j, yolo in enumerate(model.yolo_layers):
-            #     #     for name, metric in yolo.metrics.items():
-            #     #         if name != "grid_size":
-            #     #             tensorboard_log += [(f"{name}_{j+1}", metric)]
-            #     # tensorboard_log += [("loss", loss.item())]
-            #     # logger.list_of_scalars_summary(tensorboard_log, batches_done)
-            #
-            # log_str += AsciiTable(metric_table).table
-            # log_str += f"\nTotal loss {loss.item()}"
-            # log_str2 += f" Totloss {loss.item()}"
-            #
-            # # Determine approximate time left for epoch
-            # epoch_batches_left = len(dataloader) - (batch_i + 1)
-            # secs=epoch_batches_left*(time.time()-start_time)/(batch_i + 1)
-            # time_left = datetime.timedelta(seconds=secs)
-            # log_str += f"\n---- ETA {time_left}"
-            # log_str2 += f" - ETA {time_left}"
-            #
-            # if batch_i % modi == 0:
-            #     if opt.verbose:
-            #         print(log_str)
-            #     else:
-            #         with open(op.join(config['log_path'], 'log.txt'), 'w') as f:
-            #             f.write(log_str)
-            #             f.write('\n')
-            #         print(log_str2)
-            # # print(log_str)
-            #
-            # model_yolo.seen += imgs.size(0)
-
             loop.set_description(
                 'ep:{},yolo_l:{:.3f},reg_l:{:.3f}'.format(
-                    epoch, yolo_loss, regress_loss ) )
+                    epoch, yolo_loss, regress_loss )
+            )
             loop.update(1)
 
         loop.close()
 
         if epoch % config['checkpoint_interval'] == 0:
             torch.save(model_yolo.state_dict(),
-                op.join(config['checkpoint_path'],
-                '{}-{}-{}.pth'.format(config['task'], 'yolo', epoch))
+                osp.join(config['checkpoint_path'],
+                '{}_{}_{}.pth'.format(config['task'], 'yolo', epoch))
             )
             torch.save(model_regress.state_dict(),
-                op.join(config['checkpoint_path'],
-                '{}-{}-{}.pth'.format(config['task'], 'regress', epoch))
+                osp.join(config['checkpoint_path'],
+                '{}_{}_{}.pth'.format(config['task'], 'regress', epoch))
             )
 
         if epoch % config['evaluation_interval'] == 0:
@@ -257,7 +205,7 @@ if __name__ == "__main__":
 
             if bsf > avg_dist:
                 torch.save(model.state_dict(),
-                    join(config['checkpoint_path'],
+                    osp.join(config['checkpoint_path'],
                     '{}_{}_best.pth'.format(config['task'], config['type']))
                 )
                 bsf = avg_dist

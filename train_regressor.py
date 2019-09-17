@@ -9,7 +9,7 @@ from test_regressor import evaluate
 from terminaltables import AsciiTable
 
 import os
-from os.path import join
+import os.path as osp
 import sys
 import time
 import json
@@ -77,8 +77,6 @@ if __name__ == "__main__":
     'avg_dist': [],
     }
     modi = len(dataloader) // 5
-    # with open(join(config['log_path'], 'log.txt'), 'w') as f:
-    #     f.write('')
     for epoch in range(config['epochs']):
         model.train()
         avg_loss = 0.0
@@ -103,7 +101,7 @@ if __name__ == "__main__":
 
         if epoch % config['checkpoint_interval'] == 0:
             torch.save(model.state_dict(),
-                join(config['checkpoint_path'],
+                osp.join(config['checkpoint_path'],
                 '{}-{}-{}.pth'.format(config['task'], config['type'], epoch))
             )
 
@@ -112,12 +110,12 @@ if __name__ == "__main__":
             metrics['avg_loss'].append(avg_loss/len(dataloader))
             metrics['vloss'].append(vloss)
             metrics['avg_dist'].append(avg_dist)
-            with open(join(config['log_path'], 'log.txt'), 'w') as f:
+            with open(osp.join(config['log_path'], 'log.txt'), 'w') as f:
                 f.write(str(metrics))
 
             if bsf > avg_dist:
                 torch.save(model.state_dict(),
-                    join(config['checkpoint_path'],
+                    osp.join(config['checkpoint_path'],
                     '{}_{}_best.pth'.format(config['task'], config['type']))
                 )
                 bsf = results

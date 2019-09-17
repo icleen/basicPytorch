@@ -142,7 +142,9 @@ class HipLoader(BasicLoader):
 
 
 def land_boxes(boxes, lands):
-    return np.concatenate((boxes[:,:1], boxes[:,-lands:]))
+    boxes = np.concatenate((boxes[:,:1], boxes[:,-lands:]), axis=1)
+    boxes = np.pad(boxes, ((0,0),(0,2)), 'constant', constant_values=0.1)
+    return boxes
 
 def obj_boxes(boxes, lands):
     return boxes[:,:-lands]
@@ -157,10 +159,13 @@ class HipFileLoader(BasicLoader):
         super(HipFileLoader, self).__init__()
         self.num_lands = lands
         self.boxedit = landobj_boxes
+        self.outsize = 8
         if type == 'landmark':
             self.boxedit = land_boxes
+            self.outsize = 6
         elif type == 'twolands':
             self.boxedit = obj_boxes
+            self.outsize = 6
 
 
     def load(self, filename, augment=False):
@@ -184,7 +189,7 @@ class HipFileLoader(BasicLoader):
             boxes = torch.from_numpy(boxes)
 
         targets = None
-        targets = torch.zeros((len(boxes), 8))
+        targets = torch.zeros((len(boxes), self.outsize))
         targets[:, 1:] = boxes
         return img_path, img, targets
 

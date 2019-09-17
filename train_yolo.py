@@ -9,6 +9,7 @@ from test_yolo import evaluate
 from terminaltables import AsciiTable
 
 import os
+import os.path as osp
 import sys
 import time
 import json
@@ -104,6 +105,7 @@ if __name__ == "__main__":
     for epoch in range(config['epochs']):
         model.train()
         start_time = time.time()
+        loop = tqdm.tqdm(total=len(dataloader), position=0)
         for batch_i, (_, imgs, targets) in enumerate(dataloader):
             batches_done = len(dataloader) * epoch + batch_i
 
@@ -118,65 +120,18 @@ if __name__ == "__main__":
                 optimizer.step()
                 optimizer.zero_grad()
 
-            # ----------------
-            #   Log progress
-            # ----------------
+            loop.set_description(
+                'ep:{},loss:{:.3f}'.format( epoch, loss )
+            )
+            loop.update(1)
 
-            log_str = "\n---- [Epoch %d/%d, Batch %d/%d] ----\n" % (epoch,
-                config['epochs'], batch_i, len(dataloader))
-            log_str2 = "[Epoch %d/%d, Batch %d/%d] -" % (epoch,
-                config['epochs'], batch_i, len(dataloader))
-
-            metric_table = [["Metrics", *[f"YOLO Layer {i}"
-                for i in range(len(model.yolo_layers))]]]
-
-            # Log metrics at each YOLO layer
-            for i, metric in enumerate(metrics):
-                formats = {m: "%.6f" for m in metrics}
-                formats["grid_size"] = "%2d"
-                formats["cls_acc"] = "%.2f%%"
-                row_metrics = [formats[metric] % yolo.metrics.get(metric, 0)
-                    for yolo in model.yolo_layers]
-                metric_table += [[metric, *row_metrics]]
-
-                # Tensorboard logging
-                tensorboard_log = []
-                for j, yolo in enumerate(model.yolo_layers):
-                    for name, metric in yolo.metrics.items():
-                        if name != "grid_size":
-                            tensorboard_log += [(f"{name}_{j+1}", metric)]
-                tensorboard_log += [("loss", loss.item())]
-                logger.list_of_scalars_summary(tensorboard_log, batches_done)
-
-            log_str += AsciiTable(metric_table).table
-            log_str += f"\nTotal loss {loss.item()}"
-            log_str2 += f" Totloss {loss.item()}"
-
-            # Determine approximate time left for epoch
-            epoch_batches_left = len(dataloader) - (batch_i + 1)
-            secs=epoch_batches_left*(time.time()-start_time)/(batch_i + 1)
-            time_left = datetime.timedelta(seconds=secs)
-            log_str += f"\n---- ETA {time_left}"
-            log_str2 += f" - ETA {time_left}"
-
-            if batch_i % modi == 0:
-                if opt.verbose:
-                    print(log_str)
-                else:
-                    with open('{}_log.txt'.format(config['type']), 'a+') as f:
-                        f.write(log_str)
-                        f.write('\n')
-                    print(log_str2)
-            # print(log_str)
-
-            model.seen += imgs.size(0)
+        loop.close()
 
         if epoch % config['checkpoint_interval'] == 0:
             torch.save(model.state_dict(),
-                config['checkpoint_path'] + f"yolov3_%s_%d.pth" % (
-                    config['type'], epoch) )
-            # torch.save(model.state_dict(),
-            #     f"checkpoints/yolov3_ckpt_%d.pth" % epoch)
+                osp.join(config['checkpoint_path'],
+                '{}_{}_{}.pth'.format(config['task'], config['type'], epoch))
+            )
 
         if epoch % config['evaluation_interval'] == 0:
             print("\n---- Evaluating Model ----")
@@ -216,14 +171,14 @@ if __name__ == "__main__":
 
                 if bsf > avg_dist:
                     torch.save(model.state_dict(),
-                        join(config['checkpoint_path'],
+                        osp.join(config['checkpoint_path'],
                         '{}_{}_best.pth'.format(config['task'], config['type']))
                     )
                     bsf = avg_dist
             else:
                 if bsf < APmean:
                     torch.save(model.state_dict(),
-                        join(config['checkpoint_path'],
+                        osp.join(config['checkpoint_path'],
                         '{}_{}_best.pth'.format(config['task'], config['type']))
                     )
                     bsf = APmean
