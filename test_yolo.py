@@ -25,7 +25,7 @@ def evaluate(model, config, verbose=False):
     model.eval()
 
     # Get dataloader
-    dataset = CSVDataset( config, train=False, augment=False )
+    dataset = FolderDataset( config, train=False, augment=False )
     dataloader = torch.utils.data.DataLoader(
         dataset, batch_size=config['vbatch_size'], shuffle=False,
         num_workers=1, collate_fn=dataset.collate_fn
