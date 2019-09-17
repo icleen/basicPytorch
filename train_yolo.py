@@ -64,7 +64,7 @@ if __name__ == "__main__":
             model.load_darknet_weights(config['pretrained_weights'])
 
     # Get dataloader
-    dataset = CSVDataset( config, train=True, augment=True )
+    dataset = FolderDataset( config, train=True, augment=True )
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=config['batch_size'],

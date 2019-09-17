@@ -141,6 +141,37 @@ class HipLoader(BasicLoader):
         return img, targets
 
 
+class HipFileLoader(BasicLoader):
+    """docstring for HipFileLoader."""
+
+    def __init__(self):
+        super(HipFileLoader, self).__init__()
+
+    def load(self, filename, augment=False):
+        with open(filename, 'r') as f:
+            lines = [line.strip() for line in f]
+        img_path = lines[0]
+
+        #  Image
+        img = cv2.imread(img_path, 1)
+
+        #  Label
+        boxes = [[float(info) for info in line.split(',')] for line in lines[1:]]
+        boxes = np.array(boxes, dtype=np.float64)
+
+        # Apply augmentations
+        if augment:
+            img, boxes = self.augment(img, boxes)
+        else:
+            img = transforms.ToTensor()(img)
+            boxes = torch.from_numpy(boxes)
+
+        targets = None
+        targets = torch.zeros((len(boxes), 8))
+        targets[:, 1:] = boxes
+        return img_path, img, targets
+
+
 class Part2Loader(BasicLoader):
     """docstring for Part2Loader."""
 

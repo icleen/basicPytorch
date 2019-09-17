@@ -9,15 +9,17 @@
   "data_config": {
     "type": "csv",
     "classes": 2,
-    "train": "configs/twoobj/train.csv",
-    "valid": "configs/twoobj/valid.csv",
+    "train_old": "configs/twoobj/train.csv",
+    "train": "/scratch/hip_data/orig/train/",
+    "valid_old": "configs/twoobj/valid.csv",
+    "valid": "/scratch/hip_data/orig/valid/",
     "names": "configs/twoobj/classes.names"
   },
 
   "pretrained_weights": "weights/darknet53.conv.74",
 
   "learning_rate": 0.0001,
-  "n_cpu": 8,
+  "n_cpu": 1,
   "input_dim": 3,
   "img_size": 416,
   "checkpoint_interval": 1,

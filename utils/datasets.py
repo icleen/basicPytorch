@@ -1,6 +1,7 @@
 import glob
 import random
 import os
+import os.path as osp
 import sys
 import csv
 import cv2
@@ -67,6 +68,48 @@ class ImageFolder(Dataset):
 
     def __len__(self):
         return len(self.files)
+
+
+class FolderDataset(Dataset):
+    def __init__(self, config, train=True, augment=False):
+        tvp = 'train' if train else 'valid'
+        folder_path = config['data_config'][tvp]
+        self.data = [osp.join(folder_path, filep) for filep in os.listdir(folder_path)]
+
+        self.loader = HipFileLoader()
+
+        self.img_size = config['img_size'] if 'img_size' in config else 416
+        self.max_objects = 100
+        self.augment = augment
+        self.multiscale = config['multiscale_training'] if 'multiscale_training' in config else False
+        self.multiscale = self.multiscale & train
+        self.min_size = self.img_size - 3 * 32
+        self.max_size = self.img_size + 3 * 32
+        self.batch_count = 0
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        return self.loader.load(self.data[index % len(self.data)], self.augment)
+
+    def collate_fn(self, batch):
+        paths, imgs, targets = list(zip(*batch))
+        # Remove empty placeholder targets
+        targets = [boxes for boxes in targets if boxes is not None]
+        # Add sample index to targets
+        for i, boxes in enumerate(targets):
+            boxes[:, 0] = i
+        targets = torch.cat(targets, 0)
+        # Selects new image size every tenth batch
+        if self.multiscale and self.batch_count % 10 == 0:
+            self.img_size = random.choice(
+                range(self.min_size, self.max_size + 1, 32) )
+        # Resize images to input shape
+        imgs = torch.stack([resize(img, self.img_size) for img in imgs])
+        # imgs = torch.stack([img for img in imgs])
+        self.batch_count += 1
+        return paths, imgs, targets
 
 
 class CSVDataset(Dataset):
