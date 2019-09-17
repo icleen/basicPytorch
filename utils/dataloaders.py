@@ -159,11 +159,11 @@ class HipFileLoader(BasicLoader):
         super(HipFileLoader, self).__init__()
         self.num_lands = lands
         self.boxedit = landobj_boxes
-        self.outsize = 8
+        self.outsize = 6 + lands
         if type == 'landmark':
             self.boxedit = land_boxes
             self.outsize = 6
-        elif type == 'twolands':
+        elif type == 'hipobj':
             self.boxedit = obj_boxes
             self.outsize = 6
 
@@ -180,6 +180,7 @@ class HipFileLoader(BasicLoader):
         boxes = [[float(info) for info in line.split(',')] for line in lines[1:]]
         boxes = np.array(boxes, dtype=np.float64)
         boxes = self.boxedit(boxes, self.num_lands)
+        print(boxes.shape)
 
         # Apply augmentations
         if augment:
@@ -191,6 +192,7 @@ class HipFileLoader(BasicLoader):
         targets = None
         targets = torch.zeros((len(boxes), self.outsize))
         targets[:, 1:] = boxes
+        print(targets.shape)
         return img_path, img, targets
 
 

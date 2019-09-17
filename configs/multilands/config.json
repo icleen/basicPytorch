@@ -1,10 +1,10 @@
 {
   "task": "yolov3",
-  "type": "twolands",
+  "type": "multilands",
 
   "batch_size": 4,
   "vbatch_size": 10,
-  "model_def": "configs/twolands/model.cfg",
+  "model_def": "configs/multilands/model.cfg",
 
   "data_config": {
     "type": "csv",
@@ -33,7 +33,7 @@
   "nms_thres": 0.5,
 
   "checkpoint_path": "checkpoints/",
-  "log_path": "twolands_logs",
-  "val_metrics": "twolands_metrics.txt"
+  "log_path": "multilands_logs",
+  "val_metrics": "multilands_metrics.txt"
 
 }
