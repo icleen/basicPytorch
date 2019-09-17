@@ -90,9 +90,9 @@ def evaluate(model, config, verbose=False, save_imgs=0):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", type=str,
-        default="configs/config_twoobj.json", help="path to config file")
+        default="configs/landmark/config_regress.json", help="path to config file")
     parser.add_argument("-w", "--weights_path", type=str,
-        default="checkpoints/yolov3_ckpt_0.pth", help="path to weights file")
+        default="checkpoints/regress_landmark_best.pth", help="path to weights file")
     opt = parser.parse_args()
     print(opt)
 
@@ -113,5 +113,5 @@ if __name__ == "__main__":
 
     print("Compute mAP...")
 
-    results = evaluate( model, config, save_imgs=2 )
-    print('vloss:', results)
+    vloss, avg_dist = evaluate( model, config, save_imgs=2 )
+    print('vloss:', results, ', avg_dist:', avg_dist)

@@ -74,6 +74,7 @@ if __name__ == "__main__":
     metrics = {
     'avg_loss': [],
     'vloss': [],
+    'avg_dist': [],
     }
     modi = len(dataloader) // 5
     # with open(join(config['log_path'], 'log.txt'), 'w') as f:
@@ -107,12 +108,19 @@ if __name__ == "__main__":
             )
 
         if epoch % config['evaluation_interval'] == 0:
-            results = evaluate( model, config, save_imgs=2 )
+            vloss, avg_dist = evaluate( model, config, save_imgs=2 )
             metrics['avg_loss'].append(avg_loss/len(dataloader))
-            metrics['vloss'].append(results)
+            metrics['vloss'].append(vloss)
+            metrics['avg_dist'].append(avg_dist)
             with open(join(config['log_path'], 'log.txt'), 'w') as f:
                 f.write(str(metrics))
 
+            if bsf > avg_dist:
+                torch.save(model.state_dict(),
+                    join(config['checkpoint_path'],
+                    '{}_{}_best.pth'.format(config['task'], config['type']))
+                )
+                bsf = results
 
 """
 Notes on how to run

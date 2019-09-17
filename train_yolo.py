@@ -98,6 +98,9 @@ if __name__ == "__main__":
     modi = len(dataloader) // 5
     with open('{}_log.txt'.format(config['type']), 'w') as f:
         f.write('')
+    bsf = 0.0
+    if model.type in landm_set:
+        bsf = 100000
     for epoch in range(config['epochs']):
         model.train()
         start_time = time.time()
@@ -182,10 +185,11 @@ if __name__ == "__main__":
                 model,
                 config=config,
             )
+            APmean = AP.mean()
             evaluation_metrics = [
                 ("val_precision", precision.mean()),
                 ("val_recall", recall.mean()),
-                ("val_mAP", AP.mean()),
+                ("val_mAP", APmean),
                 ("val_f1", f1.mean()),
             ]
             if model.type in landm_set:
@@ -199,15 +203,32 @@ if __name__ == "__main__":
             for i, c in enumerate(ap_class):
                 ap_table += [[c, class_names[c], "%.5f" % AP[i]]]
             print(AsciiTable(ap_table).table)
-            print(f"---- mAP {AP.mean()}")
+            print(f"---- mAP {APmean}")
             if model.type in landm_set:
                 dist5 = np.sum(landm<5.0)/len(landm)
                 dist10 = np.sum(landm<10.0)/len(landm)
+                avg_dist = np.mean(landm)
                 print('landmark dists:')
                 print('\tunder5:', dist5)
                 print('\tunder10:', dist10)
-                print('\tavg_dist:', np.mean(landm))
+                print('\tavg_dist:', avg_dist)
                 print('\tmax_dist:', np.max(landm))
+
+                if bsf > avg_dist:
+                    torch.save(model.state_dict(),
+                        join(config['checkpoint_path'],
+                        '{}_{}_best.pth'.format(config['task'], config['type']))
+                    )
+                    bsf = avg_dist
+            else:
+                if bsf < APmean:
+                    torch.save(model.state_dict(),
+                        join(config['checkpoint_path'],
+                        '{}_{}_best.pth'.format(config['task'], config['type']))
+                    )
+                    bsf = APmean
+
+
 
 
 """

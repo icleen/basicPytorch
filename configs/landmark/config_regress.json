@@ -9,10 +9,12 @@
   "data_config": {
     "type": "csv",
     "classes": 2,
-    "train": "configs/landmark/ntrain.csv",
-    "valid": "configs/landmark/nvalid.csv",
+    "landmarks": 2,
+    "train": "/scratch/hip_data/orig/train/",
+    "valid": "/scratch/hip_data/orig/valid/",
     "names": "configs/landmark/classes.names"
   },
+
   "pretrained_weights": "weights/darknet53.conv.74",
 
   "learning_rate": 0.0001,

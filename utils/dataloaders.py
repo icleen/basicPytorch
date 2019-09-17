@@ -141,11 +141,27 @@ class HipLoader(BasicLoader):
         return img, targets
 
 
+def land_boxes(boxes, lands):
+    return np.concatenate((boxes[:,:1], boxes[:,-lands:]))
+
+def obj_boxes(boxes, lands):
+    return boxes[:,:-lands]
+
+def landobj_boxes(boxes, lands):
+    return boxes
+
 class HipFileLoader(BasicLoader):
     """docstring for HipFileLoader."""
 
-    def __init__(self):
+    def __init__(self, type='twoobj', lands=2):
         super(HipFileLoader, self).__init__()
+        self.num_lands = lands
+        self.boxedit = landobj_boxes
+        if type == 'landmark':
+            self.boxedit = land_boxes
+        elif type == 'twolands':
+            self.boxedit = obj_boxes
+
 
     def load(self, filename, augment=False):
         with open(filename, 'r') as f:
@@ -158,6 +174,7 @@ class HipFileLoader(BasicLoader):
         #  Label
         boxes = [[float(info) for info in line.split(',')] for line in lines[1:]]
         boxes = np.array(boxes, dtype=np.float64)
+        boxes = self.boxedit(boxes, self.num_lands)
 
         # Apply augmentations
         if augment:

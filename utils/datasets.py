@@ -76,7 +76,7 @@ class FolderDataset(Dataset):
         folder_path = config['data_config'][tvp]
         self.data = [osp.join(folder_path, filep) for filep in os.listdir(folder_path)]
 
-        self.loader = HipFileLoader()
+        self.loader = HipFileLoader(config['type'], config['data_config']['landmarks'])
 
         self.img_size = config['img_size'] if 'img_size' in config else 416
         self.max_objects = 100

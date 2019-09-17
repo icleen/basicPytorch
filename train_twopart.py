@@ -229,12 +229,13 @@ if __name__ == "__main__":
                 model_yolo, model_regress,
                 config=config,
             )
+            landmean = np.mean(landm)
             evaluation_metrics = [
                 ("val_precision", precision.mean()),
                 ("val_recall", recall.mean()),
                 ("val_mAP", AP.mean()),
                 ("val_f1", f1.mean()),
-                ("landm", landm.mean()),
+                ("landm", landmean),
             ]
             # logger.list_of_scalars_summary(evaluation_metrics, epoch)
             val_acc.append(evaluation_metrics)
@@ -251,8 +252,15 @@ if __name__ == "__main__":
             print('landmark dists:')
             print('\tunder5:', dist5)
             print('\tunder10:', dist10)
-            print('\tavg_dist:', np.mean(landm))
+            print('\tavg_dist:', landmean)
             print('\tmax_dist:', np.max(landm))
+
+            if bsf > avg_dist:
+                torch.save(model.state_dict(),
+                    join(config['checkpoint_path'],
+                    '{}_{}_best.pth'.format(config['task'], config['type']))
+                )
+                bsf = avg_dist
 
 
 """
