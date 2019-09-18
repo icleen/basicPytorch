@@ -35,11 +35,11 @@ def alt(lines, folp):
         line = line[1:]
 
         boxes = np.array(line, dtype=np.float64).reshape((-1, 7))
-        minxy = np.maximum(boxes[:,3:5] - (boxes[:,5:7]/2), 0)
-        maxxy = np.minimum(boxes[:,3:5] + (boxes[:,5:7]/2), 1)
-        minxy = minxy + (boxes[:,5:7]/2)
-        maxxy = maxxy - (boxes[:,5:7]/2)
-        outlabel = minxy[0,:].tolist() + maxxy[1,:].tolist()
+        minxy = np.maximum(boxes[0,3:5] - (boxes[0,5:7]/2), 0)
+        maxxy = np.minimum(boxes[1,3:5] + (boxes[1,5:7]/2), 1)
+        nwh = np.maximum(maxxy-minxy, 0)
+        nxy = np.maximum((maxxy+minxy)/2, 0)
+        outlabel = nxy.tolist() + nwh.tolist()
         outlabel += boxes[0, 1:3].tolist() + boxes[1, 1:3].tolist()
 
         wfile = osp.join(folp, imgp.split('/')[-1].split('.')[0]+'.txt')
