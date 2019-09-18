@@ -101,8 +101,7 @@ if __name__ == "__main__":
 
         if epoch % config['checkpoint_interval'] == 0:
             torch.save(model.state_dict(),
-                osp.join(config['checkpoint_path'],
-                '{}-{}-{}.pth'.format(config['task'], config['type'], epoch))
+                config['checkpoint_path'].format('best')
             )
 
         if epoch % config['evaluation_interval'] == 0:
@@ -115,8 +114,7 @@ if __name__ == "__main__":
 
             if bsf > avg_dist:
                 torch.save(model.state_dict(),
-                    osp.join(config['checkpoint_path'],
-                    '{}_{}_best.pth'.format(config['task'], config['type']))
+                    config['checkpoint_path'].format('best')
                 )
                 bsf = results
 

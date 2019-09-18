@@ -32,7 +32,7 @@
   "conf_thres": 0.8,
   "nms_thres": 0.5,
 
-  "checkpoint_path": "checkpoints/",
+  "checkpoint_path": "checkpoints/yolov3_multilands_{}.pth",
   "log_path": "multilands_logs",
   "val_metrics": "multilands_metrics.txt"
 

@@ -1,18 +1,19 @@
 {
   "task": "yolov3",
-  "type": "hipobj",
+  "type": "landmark",
 
   "batch_size": 4,
   "vbatch_size": 10,
-  "model_def": "configs/hipobj/model.cfg",
+  "model_def": "configs/landmark/model_landmark.cfg",
 
   "data_config": {
     "type": "csv",
     "classes": 2,
+    "widths": 0.5,
     "landmarks": 2,
     "train": "/scratch/hip_data/orig/train/",
     "valid": "/scratch/hip_data/orig/valid/",
-    "names": "configs/hipobj/classes.names"
+    "names": "configs/landmark/classes.names"
   },
 
   "pretrained_weights": "weights/darknet53.conv.74",
@@ -23,17 +24,16 @@
   "img_size": 416,
   "checkpoint_interval": 1,
   "evaluation_interval": 1,
-  "compute_map": false,
   "multiscale_training": true,
   "gradient_accumulations": 2,
-  "epochs": 10,
+  "epochs": 20,
 
   "iou_thres": 0.5,
   "conf_thres": 0.8,
   "nms_thres": 0.5,
 
-  "checkpoint_path": "checkpoints/yolov3_hipobj_{}.pth",
-  "log_path": "hipobj_logs",
-  "val_metrics": "hipobj_metrics.txt"
+  "checkpoint_path": "checkpoints/yolov3_landmark2_{}.pth",
+  "log_path": "landmark2_logs",
+  "val_metrics": "landmark2_metrics.txt"
 
 }

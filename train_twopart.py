@@ -162,12 +162,10 @@ if __name__ == "__main__":
 
         if epoch % config['checkpoint_interval'] == 0:
             torch.save(model_yolo.state_dict(),
-                osp.join(config['checkpoint_path'],
-                '{}_{}_{}.pth'.format(config['task'], 'yolo', epoch))
+                config['checkpoint_path']['yolo'].format(epoch)
             )
             torch.save(model_regress.state_dict(),
-                osp.join(config['checkpoint_path'],
-                '{}_{}_{}.pth'.format(config['task'], 'regress', epoch))
+                config['checkpoint_path']['regress'].format(epoch)
             )
 
         if epoch % config['evaluation_interval'] == 0:
@@ -204,9 +202,11 @@ if __name__ == "__main__":
             print('\tmax_dist:', np.max(landm))
 
             if bsf > avg_dist:
-                torch.save(model.state_dict(),
-                    osp.join(config['checkpoint_path'],
-                    '{}_{}_best.pth'.format(config['task'], config['type']))
+                torch.save(model_yolo.state_dict(),
+                    config['checkpoint_path']['yolo'].format('best')
+                )
+                torch.save(model_regress.state_dict(),
+                    config['checkpoint_path']['regress'].format('best')
                 )
                 bsf = avg_dist
 

@@ -168,6 +168,25 @@ def get_land_statistics(outputs, targets):
     return np.mean(land_dists, axis=1)
 
 
+def get_multiland_statistics(outputs, targets, lands=2):
+    land_dists = np.zeros((len(outputs), lands//2))
+    for sample_i in range(len(outputs)):
+        if outputs[sample_i] is None:
+            continue
+
+        pred_lands = outputs[sample_i][:, 5:5+lands].contiguous().view(-1, lands//2)
+        targ_lands = targets[targets[:, 0] == sample_i][:, -lands:].view(-1, lands//2)
+        if len(targ_lands) == len(pred_lands):
+            for pred_i, pland in enumerate(pred_lands):
+                dist = torch.dist(pland, targ_lands[pred_i], 2)
+                land_dists[sample_i, pred_i] = dist.numpy()
+        else:
+            print('not equal')
+            import pdb; pdb.set_trace()
+
+    return np.mean(land_dists, axis=1)
+
+
 def get_regress_statistics(outputs, targets):
     stats = np.zeros(outputs.size(0))
     for oi in range(outputs.size(0)):
@@ -257,93 +276,6 @@ def bbox_iou(box1, box2, x1y1x2y2=True):
     iou = inter_area / (b1_area + b2_area - inter_area + 1e-16)
 
     return iou
-
-
-def non_max_suppression(prediction, conf_thres=0.5, nms_thres=0.4):
-    """
-    Removes detections with lower object confidence score than 'conf_thres' and performs
-    Non-Maximum Suppression to further filter detections.
-    Returns detections with shape:
-        (x1, y1, x2, y2, object_conf, class_score, class_pred)
-    """
-
-    # From (center x, center y, width, height) to (x1, y1, x2, y2)
-    prediction[..., :4] = xywh2xyxy(prediction[..., :4])
-    output = [None for _ in range(len(prediction))]
-    for image_i, image_pred in enumerate(prediction):
-        # Filter out confidence scores below threshold
-        image_pred = image_pred[image_pred[:, 4] >= conf_thres]
-        # If none are remaining => process next image
-        if not image_pred.size(0):
-            continue
-        # Object confidence times class confidence
-        score = image_pred[:, 4] * image_pred[:, 5:].max(1)[0]
-        # Sort by it
-        image_pred = image_pred[(-score).argsort()]
-        class_confs, class_preds = image_pred[:, 5:].max(1, keepdim=True)
-        detections = torch.cat(
-            (image_pred[:, :5], class_confs.float(), class_preds.float()), 1)
-        # Perform non-maximum suppression
-        keep_boxes = []
-        while detections.size(0):
-            large_overlap = bbox_iou(
-                detections[0, :4].unsqueeze(0), detections[:, :4]) > nms_thres
-            label_match = detections[0, -1] == detections[:, -1]
-            # Indices of boxes with lower confidence scores, large IOUs and matching labels
-            invalid = large_overlap & label_match
-            weights = detections[invalid, 4:5]
-            # Merge overlapping bboxes by order of confidence
-            detections[0, :4] = (weights * detections[invalid, :4]).sum(0) / weights.sum()
-            keep_boxes += [detections[0]]
-            detections = detections[~invalid]
-        if keep_boxes:
-            output[image_i] = torch.stack(keep_boxes)
-
-    return output
-
-
-def non_max_suppression_twoobj(prediction, conf_thres=0.5, nms_thres=0.4):
-    """
-    Removes detections with lower object confidence score than 'conf_thres' and performs
-    Non-Maximum Suppression to further filter detections.
-    Returns detections with shape:
-        (x1, y1, x2, y2, object_conf, class_score, class_pred)
-    """
-
-    # From (center x, center y, width, height) to (x1, y1, x2, y2)
-    prediction[..., :4] = xywh2xyxy(prediction[..., :4])
-    output = [None for _ in range(len(prediction))]
-    for image_i, image_pred in enumerate(prediction):
-        # Filter out confidence scores below threshold
-        image_pred = image_pred[image_pred[:, 4] >= conf_thres]
-        # If none are remaining => process next image
-        if not image_pred.size(0):
-            continue
-        # Object confidence times class confidence
-        score = image_pred[:, 4] * image_pred[:, 5:-2].max(1)[0]
-        # Sort by it
-        image_pred = image_pred[(-score).argsort()]
-        class_confs, class_preds = image_pred[:, 5:-2].max(1, keepdim=True)
-        detections = torch.cat(
-            (image_pred[:, :5], image_pred[:, -2:], class_confs.float(), class_preds.float()), 1)
-        # Perform non-maximum suppression
-        keep_boxes = []
-        while detections.size(0):
-            large_overlap = bbox_iou(
-                detections[0, :4].unsqueeze(0), detections[:, :4]) > nms_thres
-            label_match = detections[0, -1] == detections[:, -1]
-            # Indices of boxes with lower confidence scores, large IOUs and matching labels
-            invalid = large_overlap & label_match
-            weights = detections[invalid, 4:5]
-            # Merge overlapping bboxes by order of confidence
-            detections[0, :4] = (weights * detections[invalid, :4]).sum(0) / weights.sum()
-            detections[0, 5:7] = (weights * detections[invalid, 5:7]).sum(0) / weights.sum()
-            keep_boxes += [detections[0]]
-            detections = detections[~invalid]
-        if keep_boxes:
-            output[image_i] = torch.stack(keep_boxes)
-
-    return output
 
 
 def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
@@ -552,16 +484,3 @@ def fake_target_build(target, img_size):
     gyl = (gyl - gy) / (gh / 2)
 
     return gxl, gyl
-
-def post_process(pred_boxes):
-    for b, boxes in enumerate(pred_boxes):
-        if boxes is not None:
-            nboxes = torch.FloatTensor(2, boxes.size(1)).fill_(0)
-            for i in range(len(boxes)-1, -1, -1):
-                nboxes[int(boxes[i, -1])] = boxes[i]
-            pred_boxes[b] = nboxes
-    return pred_boxes
-
-
-def regress_postp(preds):
-    return torch.mean(preds.view(-1, 3, 4), dim=1)

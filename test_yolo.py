@@ -2,6 +2,7 @@ from __future__ import division
 
 from models import *
 from utils.utils import *
+from utils.post_process import *
 from utils.datasets import *
 from utils.parse_config import *
 
@@ -42,10 +43,10 @@ def evaluate(model, config, verbose=False):
     sample_metrics = []  # List of tuples (TP, confs, pred)
     land_metrics = None
     landm_set = ['twoobj', 'landmark', 'part2']
-    if model.type in landm_set:
+    if model.type in landm_set or model.type == 'multilands':
         land_metrics = []  # List of np arrs (landmark dists)
-    for batch_i, (imgps, imgs, targets) in enumerate(
-            tqdm.tqdm(dataloader, desc="Detecting objects")):
+    loop = tqdm.tqdm(total=len(dataloader), position=0)
+    for batch_i, (imgps, imgs, targets) in enumerate(dataloader):
 
         imgs = Variable(imgs.type(Tensor), requires_grad=False)
 
@@ -54,11 +55,16 @@ def evaluate(model, config, verbose=False):
             if model.type == 'twoobj':
                 outputs = non_max_suppression_twoobj(outputs,
                     conf_thres=conf_thres, nms_thres=nms_thres)
+                outputs = post_process_expected(outputs, expected=2)
+            elif model.type == 'multilands':
+                outputs = non_max_suppression_multilands(outputs,
+                    conf_thres=conf_thres, nms_thres=nms_thres,
+                    landmarks=config['data_config']['landmarks'])
+                outputs = post_process_expected(outputs, expected=1)
             else:
                 outputs = non_max_suppression(outputs,
                     conf_thres=conf_thres, nms_thres=nms_thres)
-
-            outputs = post_process(outputs)
+                outputs = post_process(outputs)
 
         # Extract labels
         labels += targets[:, 1].tolist()
@@ -71,24 +77,20 @@ def evaluate(model, config, verbose=False):
             if model.type == 'twoobj':
                 targets[:, -2:] *= img_size
             pdists = get_land_statistics(outputs, targets)
-            if False:
-                indcs = np.arange(pdists.shape[0])[pdists[:,0] > 10.0]
-                targets = targets.numpy().reshape(-1,2,8)
-                outputs = np.array([out.numpy() for out in outputs])
-                for d in indcs:
-                    print('Over 10:')
-                    out = outputs[d]
-                    pland = out[:,5:7]
-                    print('img:', imgps[d])
-                    print('predicted confidence:', out[:,4])
-                    print('predicted lands:',pland)
-                    print('predicted classes',out[:,-1])
-                    tar = targets[d]
-                    tland = tar[:,-2:]
-                    print('target lands:',tland)
-                    print('target classes',tar[:,1])
-                    print('distances',pdists[d])
             land_metrics += list(pdists)
+
+            loop.set_description( 'avg_dist:{:3f}'.format(np.mean(land_metrics)) )
+        elif model.type == 'multilands':
+            lands = config['data_config']['landmarks']
+            targets[:, -lands:] *= img_size
+            pdists = get_multiland_statistics(outputs, targets, lands)
+            land_metrics += list(pdists)
+
+            loop.set_description( 'avg_dist:{:3f}'.format(np.mean(land_metrics)) )
+        else:
+            loop.set_description( 'detecting' )
+        loop.update(1)
+    loop.close()
 
     # Concatenate sample statistics
     true_positives, pred_scores, pred_labels = [
@@ -142,7 +144,7 @@ if __name__ == "__main__":
 
     print(f"mAP: {AP.mean()}")
 
-    if model.type in ['twoobj', 'landmark', 'part2']:
+    if landm is not None:
         dist5 = np.sum(landm<5.0)/len(landm)
         dist10 = np.sum(landm<10.0)/len(landm)
         print('landmark dists:')

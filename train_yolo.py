@@ -42,7 +42,7 @@ if __name__ == "__main__":
     config['log_path'] = config['log_path'].format(config['type'])
     os.makedirs(config['log_path'], exist_ok=True)
     os.makedirs('output', exist_ok=True)
-    os.makedirs(config['checkpoint_path'], exist_ok=True)
+    os.makedirs('/'.join(config['checkpoint_path'].split('/')[:-1]), exist_ok=True)
 
     logger = Logger(config['log_path'])
 
@@ -129,8 +129,7 @@ if __name__ == "__main__":
 
         if epoch % config['checkpoint_interval'] == 0:
             torch.save(model.state_dict(),
-                osp.join(config['checkpoint_path'],
-                '{}_{}_{}.pth'.format(config['task'], config['type'], epoch))
+                config['checkpoint_path'].format(epoch)
             )
 
         if epoch % config['evaluation_interval'] == 0:
@@ -147,7 +146,7 @@ if __name__ == "__main__":
                 ("val_mAP", APmean),
                 ("val_f1", f1.mean()),
             ]
-            if model.type in landm_set:
+            if landm is not None:
                 evaluation_metrics.append( ("landm", landm.mean()) )
             logger.list_of_scalars_summary(evaluation_metrics, epoch)
             val_acc.append(evaluation_metrics)
@@ -159,7 +158,7 @@ if __name__ == "__main__":
                 ap_table += [[c, class_names[c], "%.5f" % AP[i]]]
             print(AsciiTable(ap_table).table)
             print(f"---- mAP {APmean}")
-            if model.type in landm_set:
+            if landm is not None:
                 dist5 = np.sum(landm<5.0)/len(landm)
                 dist10 = np.sum(landm<10.0)/len(landm)
                 avg_dist = np.mean(landm)
@@ -171,15 +170,13 @@ if __name__ == "__main__":
 
                 if bsf > avg_dist:
                     torch.save(model.state_dict(),
-                        osp.join(config['checkpoint_path'],
-                        '{}_{}_best.pth'.format(config['task'], config['type']))
+                        config['checkpoint_path'].format('best')
                     )
                     bsf = avg_dist
             else:
                 if bsf < APmean:
                     torch.save(model.state_dict(),
-                        osp.join(config['checkpoint_path'],
-                        '{}_{}_best.pth'.format(config['task'], config['type']))
+                        config['checkpoint_path'].format('best')
                     )
                     bsf = APmean
 

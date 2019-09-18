@@ -9,6 +9,7 @@
   "data_config": {
     "type": "csv",
     "classes": 2,
+    "widths": 0.1,
     "landmarks": 2,
     "train": "/scratch/hip_data/orig/train/",
     "valid": "/scratch/hip_data/orig/valid/",
@@ -31,7 +32,7 @@
   "conf_thres": 0.8,
   "nms_thres": 0.5,
 
-  "checkpoint_path": "checkpoints/",
+  "checkpoint_path": "checkpoints/yolov3_landmark_{}.pth",
   "log_path": "landmark_logs",
   "val_metrics": "landmark_metrics.txt"
 

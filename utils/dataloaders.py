@@ -143,30 +143,45 @@ class HipLoader(BasicLoader):
         return img, targets
 
 
-def land_boxes(boxes, lands):
-    boxes = np.concatenate((boxes[:,:1], boxes[:,-lands:]), axis=1)
-    boxes = np.pad(boxes, ((0,0),(0,2)), 'constant', constant_values=0.1)
-    return boxes
+class BoxEdit(object):
+    """docstring for BoxEdit."""
+    def __init__(self, lands=2):
+        super(BoxEdit, self).__init__()
+        self.lands = lands
+    def edit(self, boxes):
+        return boxes
 
-def obj_boxes(boxes, lands):
-    return boxes[:,:-lands]
+class LandBoxEdit(BoxEdit):
+    """docstring for LandBoxEdit."""
+    def __init__(self, lands=2, widths=0.1):
+        super(LandBoxEdit, self).__init__(lands)
+        self.widths = widths
+    def edit(self, boxes):
+        boxes = np.concatenate((boxes[:,:1], boxes[:,-self.lands:]), axis=1)
+        boxes = np.pad(boxes, ((0,0),(0,2)), 'constant', constant_values=self.widths)
+        return boxes
 
-def landobj_boxes(boxes, lands):
-    return boxes
+class ObjBoxEdit(BoxEdit):
+    """docstring for ObjBoxEdit."""
+    def __init__(self, lands=2):
+        super(ObjBoxEdit, self).__init__(lands)
+    def edit(self, boxes):
+        return boxes[:,:-self.lands]
 
 class HipFileLoader(BasicLoader):
     """docstring for HipFileLoader."""
 
-    def __init__(self, type='twoobj', lands=2):
+    def __init__(self, config):
         super(HipFileLoader, self).__init__()
-        self.num_lands = lands
-        self.boxedit = landobj_boxes
-        self.outsize = 6 + lands
-        if type == 'landmark':
-            self.boxedit = land_boxes
+        self.num_lands = config['data_config']['landmarks']
+        self.boxedit = BoxEdit(self.num_lands)
+        self.outsize = 6 + self.num_lands
+        if config['type'] == 'landmark':
+            self.boxedit = LandBoxEdit(
+                self.num_lands, widths=config['data_config']['widths'] )
             self.outsize = 6
-        elif type == 'hipobj':
-            self.boxedit = obj_boxes
+        elif config['type'] == 'hipobj':
+            self.boxedit = ObjBoxEdit(self.num_lands)
             self.outsize = 6
 
 
@@ -181,7 +196,7 @@ class HipFileLoader(BasicLoader):
         #  Label
         boxes = [[float(info) for info in line.split(',')] for line in lines[1:]]
         boxes = np.array(boxes, dtype=np.float64)
-        boxes = self.boxedit(boxes, self.num_lands)
+        boxes = self.boxedit.edit(boxes)
 
         # Apply augmentations
         if augment:
