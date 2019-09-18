@@ -448,11 +448,6 @@ def build_targets_twoobj(pred_boxes, pred_cls, target, anchors, ignore_thres):
     for i, anchor_ious in enumerate(ious.t()):
         noobj_mask[b[i], anchor_ious > ignore_thres, gj[i], gi[i]] = 0
 
-    # print(gxl)
-    # print(gx)
-    # print(gxl-gx)
-    # print( (gxl - gx) / (gw / 2) )
-    # import pdb; pdb.set_trace()
     # Landmarks
     txl[b, best_n, gj, gi] = (gxl - gx) / (gw / 2)
     tyl[b, best_n, gj, gi] = (gyl - gy) / (gh / 2)
@@ -472,7 +467,7 @@ def build_targets_twoobj(pred_boxes, pred_cls, target, anchors, ignore_thres):
     return (iou_scores, class_mask, obj_mask, noobj_mask,
             txl, tyl, tx, ty, tw, th, tcls, tconf)
 
-def build_targets_multobj(pred_boxes, pred_cls, target, anchors, ignore_thres, lands=2):
+def build_targets_multilands(pred_boxes, pred_cls, target, anchors, ignore_thres, lands=2):
     ByteTensor = torch.cuda.ByteTensor if pred_boxes.is_cuda else torch.ByteTensor
     FloatTensor = torch.cuda.FloatTensor if pred_boxes.is_cuda else torch.FloatTensor
 
@@ -506,6 +501,7 @@ def build_targets_multobj(pred_boxes, pred_cls, target, anchors, ignore_thres, l
     gx, gy = gxy.t()
     gw, gh = gwh.t()
     gi, gj = gxy.long().t()
+
     # Set masks
     obj_mask[b, best_n, gj, gi] = 1
     noobj_mask[b, best_n, gj, gi] = 0
@@ -514,11 +510,12 @@ def build_targets_multobj(pred_boxes, pred_cls, target, anchors, ignore_thres, l
     for i, anchor_ious in enumerate(ious.t()):
         noobj_mask[b[i], anchor_ious > ignore_thres, gj[i], gi[i]] = 0
 
+
     # Landmarks
     landxy = []
-    for li in range(lands):
+    for li in range(lands//2):
         li *= 2
-        gxl, gyl = gxyl[li:li+2].t()
+        gxl, gyl = gxyl[:,li:li+2].t()
         txl = FloatTensor(nB, nA, nG, nG).fill_(0)
         tyl = FloatTensor(nB, nA, nG, nG).fill_(0)
         txl[b, best_n, gj, gi] = (gxl - gx) / (gw / 2)

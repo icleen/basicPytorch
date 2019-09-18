@@ -36,6 +36,8 @@ class BasicLoader(object):
         # if np.random.random() < 0.5:
         #     img, boxes = rotate(img, boxes, np.random.normal(0.0, 7.0))
         boxes[:,1:] += np.random.normal(0.0, 0.002, boxes[:,1:].shape)
+        boxes[:,1:] = np.maximum(boxes[:,1:], 0)
+        boxes[:,1:] = np.minimum(boxes[:,1:], 0.9999)
         img = transforms.ToTensor()(img)
         boxes = torch.from_numpy(boxes)
         if np.random.random() < 0.5:
@@ -180,7 +182,6 @@ class HipFileLoader(BasicLoader):
         boxes = [[float(info) for info in line.split(',')] for line in lines[1:]]
         boxes = np.array(boxes, dtype=np.float64)
         boxes = self.boxedit(boxes, self.num_lands)
-        print(boxes.shape)
 
         # Apply augmentations
         if augment:
@@ -192,7 +193,6 @@ class HipFileLoader(BasicLoader):
         targets = None
         targets = torch.zeros((len(boxes), self.outsize))
         targets[:, 1:] = boxes
-        print(targets.shape)
         return img_path, img, targets
 
 

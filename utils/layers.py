@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import numpy as np
 
 from utils.parse_config import *
-from utils.utils import build_targets, build_targets_twoobj
+from utils.utils import build_targets, build_targets_twoobj, build_targets_multilands
 from utils.utils import to_cpu
 
 
@@ -305,7 +305,7 @@ class YOLOLayer(nn.Module):
         if self.type == 'normal':
             self.myforward = self.normal_forward
         elif self.type == 'landmarks':
-            self.myforward = self.landmarks_forward
+            self.myforward = self.multiland_forward
 
     def compute_grid_offsets(self, grid_size, cuda=True):
         self.grid_size = grid_size
@@ -325,8 +325,6 @@ class YOLOLayer(nn.Module):
     def twoobj_forward(self, x, targets, img_dim):
         # Tensors for cuda support
         FloatTensor = torch.cuda.FloatTensor if x.is_cuda else torch.FloatTensor
-        LongTensor = torch.cuda.LongTensor if x.is_cuda else torch.LongTensor
-        ByteTensor = torch.cuda.ByteTensor if x.is_cuda else torch.ByteTensor
 
         self.img_dim = img_dim
         num_samples = x.size(0)
@@ -432,11 +430,9 @@ class YOLOLayer(nn.Module):
 
             return output, total_loss
 
-    def landmarks_forward(self, x, targets, img_dim):
+    def multiland_forward(self, x, targets, img_dim):
         # Tensors for cuda support
         FloatTensor = torch.cuda.FloatTensor if x.is_cuda else torch.FloatTensor
-        LongTensor = torch.cuda.LongTensor if x.is_cuda else torch.LongTensor
-        ByteTensor = torch.cuda.ByteTensor if x.is_cuda else torch.ByteTensor
 
         self.img_dim = img_dim
         num_samples = x.size(0)
@@ -449,15 +445,14 @@ class YOLOLayer(nn.Module):
         )
 
         landxy = prediction[..., -self.lands:]
-        xl = torch.tanh(landxy[..., 0])  # Center x
-        yl = torch.tanh(landxy[..., 1])  # Center y
+        landxy = torch.tanh(landxy)
         # Get outputs
         x = torch.sigmoid(prediction[..., 0])  # Center x
         y = torch.sigmoid(prediction[..., 1])  # Center y
         w = prediction[..., 2]  # Width
         h = prediction[..., 3]  # Height
         pred_conf = torch.sigmoid(prediction[...,  4])  # Conf
-        pred_cls  = torch.sigmoid(prediction[..., 5:-2])  # Cls pred.
+        pred_cls  = torch.sigmoid(prediction[..., 5:-self.lands])  # Cls pred.
 
         # If grid size does not match current we compute new offsets
         if grid_size != self.grid_size:
@@ -469,16 +464,20 @@ class YOLOLayer(nn.Module):
         pred_boxes[..., 1] = y.data + self.grid_y
         pred_boxes[..., 2] = torch.exp(w.data) * self.anchor_w
         pred_boxes[..., 3] = torch.exp(h.data) * self.anchor_h
-        pred_lands = FloatTensor(prediction[..., :2].shape)
-        pred_lands[..., 0] = (xl * pred_boxes[..., 2] / 2) + pred_boxes[..., 0]
-        pred_lands[..., 1] = (yl * pred_boxes[..., 3] / 2) + pred_boxes[..., 1]
+        pred_lands = FloatTensor(landxy.shape)
+        for li in range(self.lands//2):
+            li *= 2
+            xl = landxy[..., li] # Landmark x
+            yl = landxy[..., li+1]  # Landmark y
+            pred_lands[..., li] = (xl * pred_boxes[..., 2] / 2) + pred_boxes[..., 0]
+            pred_lands[..., li+1] = (yl * pred_boxes[..., 3] / 2) + pred_boxes[..., 1]
 
         output = torch.cat(
             (
                 pred_boxes.view(num_samples, -1, 4) * self.stride,
                 pred_conf.view(num_samples, -1, 1),
                 pred_cls.view(num_samples, -1, self.num_classes),
-                pred_lands.view(num_samples, -1, 2) * self.stride,
+                pred_lands.view(num_samples, -1, self.lands) * self.stride,
             ),
             -1,
         )
@@ -486,17 +485,25 @@ class YOLOLayer(nn.Module):
         if targets is None:
             return output, 0
         else:
-            iou_scores, class_mask, obj_mask, noobj_mask, txl, tyl, tx, ty, tw, th, tcls, tconf = build_targets_twoobj(
+            iou_scores, class_mask, obj_mask, noobj_mask, tx, ty, tw, th, tcls, tconf, targxy = build_targets_multilands(
                 pred_boxes=pred_boxes,
                 pred_cls=pred_cls,
                 target=targets,
                 anchors=self.scaled_anchors,
                 ignore_thres=self.ignore_thres,
+                lands=self.lands
             )
 
             # Loss : Mask outputs to ignore non-existing objects (except with conf. loss)
-            loss_xl = self.mse_loss(xl[obj_mask], txl[obj_mask])
-            loss_yl = self.mse_loss(yl[obj_mask], tyl[obj_mask])
+            loss_xl = 0
+            loss_yl = 0
+            for li in range(self.lands//2):
+                txl, tyl = targxy[li]
+                li *= 2
+                xl = landxy[..., li] # Landmark x
+                yl = landxy[..., li+1]  # Landmark y
+                loss_xl += self.mse_loss(xl[obj_mask], txl[obj_mask])
+                loss_yl += self.mse_loss(yl[obj_mask], tyl[obj_mask])
             loss_x = self.mse_loss(x[obj_mask], tx[obj_mask])
             loss_y = self.mse_loss(y[obj_mask], ty[obj_mask])
             loss_w = self.mse_loss(w[obj_mask], tw[obj_mask])
@@ -545,8 +552,6 @@ class YOLOLayer(nn.Module):
     def normal_forward(self, x, targets, img_dim):
         # Tensors for cuda support
         FloatTensor = torch.cuda.FloatTensor if x.is_cuda else torch.FloatTensor
-        LongTensor = torch.cuda.LongTensor if x.is_cuda else torch.LongTensor
-        ByteTensor = torch.cuda.ByteTensor if x.is_cuda else torch.ByteTensor
 
         self.img_dim = img_dim
         num_samples = x.size(0)
