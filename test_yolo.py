@@ -64,7 +64,7 @@ def evaluate(model, config, verbose=False):
             else:
                 outputs = non_max_suppression(outputs,
                     conf_thres=conf_thres, nms_thres=nms_thres)
-                outputs = post_process(outputs)
+                outputs = post_process_expected(outputs, expected=2)
 
         # Extract labels
         labels += targets[:, 1].tolist()

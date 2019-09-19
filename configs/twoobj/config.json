@@ -26,7 +26,7 @@
   "compute_map": false,
   "multiscale_training": true,
   "gradient_accumulations": 2,
-  "epochs": 10,
+  "epochs": 20,
 
   "iou_thres": 0.5,
   "conf_thres": 0.8,

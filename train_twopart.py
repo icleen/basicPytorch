@@ -42,7 +42,7 @@ if __name__ == "__main__":
     config['log_path'] = config['log_path'].format(config['type'])
     os.makedirs(config['log_path'], exist_ok=True)
     os.makedirs('output', exist_ok=True)
-    os.makedirs(config['checkpoint_path'], exist_ok=True)
+    os.makedirs('/'.join(config['checkpoint_path']['yolo'].split('/')[:-1]), exist_ok=True)
 
     # logger = Logger(config['log_path'])
 

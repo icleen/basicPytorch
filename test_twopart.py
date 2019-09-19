@@ -2,6 +2,7 @@ from __future__ import division
 
 from models import *
 from utils.utils import *
+from utils.post_process import *
 from utils.datasets import *
 from utils.parse_config import *
 
@@ -60,7 +61,7 @@ def evaluate(model_yolo, model_regress, config, verbose=False, save_imgs=0):
             outputsy = model_yolo(imgsy)
             outputsy = non_max_suppression(outputsy,
                 conf_thres=conf_thres, nms_thres=nms_thres)
-            outputsy = post_process(outputsy)
+            outputsy = post_process_twoobj(outputsy)
 
             outputsr, loss = model_regress(imgsr, targetsr)
             vloss += loss.cpu().item()

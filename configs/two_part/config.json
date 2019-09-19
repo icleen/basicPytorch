@@ -19,7 +19,7 @@
   "pretrained_weights": "weights/darknet53.conv.74",
 
   "learning_rate": 0.0001,
-  "n_cpu": 1,
+  "n_cpu": 8,
   "input_dim": 3,
   "img_size": {
     "yolo": 416,
@@ -38,7 +38,7 @@
 
   "checkpoint_path": {
     "yolo": "checkpoints/two_part_yolo_{}.pth",
-    "regress": "checkpoints/two_part_regress_{}.pth",
+    "regress": "checkpoints/two_part_regress_{}.pth"
   },
   "log_path": "two_part_logs",
   "val_metrics": "two_part_metrics.txt"
