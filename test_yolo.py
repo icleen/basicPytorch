@@ -79,14 +79,14 @@ def evaluate(model, config, verbose=False):
             pdists = get_land_statistics(outputs, targets)
             land_metrics += list(pdists)
 
-            loop.set_description( 'avg_dist:{:3f}'.format(np.mean(land_metrics)) )
+            loop.set_description( 'avg_dist:{:.3f}'.format(np.mean(land_metrics)) )
         elif model.type == 'multilands':
             lands = config['data_config']['landmarks']
             targets[:, -lands:] *= img_size
             pdists = get_multiland_statistics(outputs, targets, lands)
             land_metrics += list(pdists)
 
-            loop.set_description( 'avg_dist:{:3f}'.format(np.mean(land_metrics)) )
+            loop.set_description( 'avg_dist:{:.3f}'.format(np.mean(land_metrics)) )
         else:
             loop.set_description( 'detecting' )
         loop.update(1)

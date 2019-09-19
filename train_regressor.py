@@ -40,7 +40,7 @@ if __name__ == "__main__":
     config['log_path'] = config['log_path'].format(config['type'])
     os.makedirs(config['log_path'], exist_ok=True)
     os.makedirs('output', exist_ok=True)
-    os.makedirs(config['checkpoint_path'], exist_ok=True)
+    os.makedirs('/'.join(config['checkpoint_path'].split('/')[:-1]), exist_ok=True)
 
     logger = Logger(config['log_path'])
 
@@ -60,7 +60,7 @@ if __name__ == "__main__":
             model.load_weights(config['pretrained_weights'])
 
     # Get dataloader
-    dataset = CSVDataset( config, train=True, augment=True )
+    dataset = FolderDataset( config, train=True, augment=True )
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=config['batch_size'],

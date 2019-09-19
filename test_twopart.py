@@ -48,7 +48,6 @@ def evaluate(model_yolo, model_regress, config, verbose=False, save_imgs=0):
     sample_metrics = []  # List of tuples (TP, confs, pred)
     land_metrics = []  # List of np arrs (landmark dists)
     vloss = 0
-    saved = 0
     loop = tqdm.tqdm(total=len(dataloader), position=0)
     for batch_i, (imgps, imgs, targets) in enumerate(dataloader):
 
@@ -68,11 +67,13 @@ def evaluate(model_yolo, model_regress, config, verbose=False, save_imgs=0):
             outputsr = outputsr.view(-1, 4)
             land_metrics += list(get_regress_statistics(outputsr*imgsr.size(-1), targetsr.cpu()*imgsr.size(-1)))
 
-        if saved < save_imgs:
+        if batch_i < save_imgs:
             # take the first img in each batch and save the predicted img
-            img = cv2.imread(imgp[0], 1)
+            img = cv2.imread(imgps[0], 1)
             pred = outputsr[0].cpu().numpy()
-            label = targetsr[0].cpu().numpy()
+            label = targetsr.view(-1,
+             config['data_config']['landmarks'])[0].cpu().numpy()
+            import pdb; pdb.set_trace()
             pred *= img.shape[0]
             label *= img.shape[0]
             img = cv2.circle(img, (pred[0], pred[1]), 5, (0,255,0), 1)
@@ -81,7 +82,6 @@ def evaluate(model_yolo, model_regress, config, verbose=False, save_imgs=0):
             img = cv2.circle(img, (label[2], label[3]), 5, (0,0,255), 1)
             # print(outimg.shape)
             cv2.imwrite('output/regimg_{}.png'.format(batch_i), img)
-            saved += 1
 
         # Extract labels
         labels += targetsy[:, 1].tolist()
@@ -91,9 +91,10 @@ def evaluate(model_yolo, model_regress, config, verbose=False, save_imgs=0):
         metrics = get_batch_statistics(outputsy, targetsy.cpu(), iou_threshold=iou_thres)
         sample_metrics += metrics
 
-        loop.set_description( 'vloss:{:3f},avg_dist:{:3f}'.format(
-            loss, np.mean(land_metrics)) )
+        loop.set_description( 'vloss:{:.3f},avg_dist:{:.3f}'.format(
+            loss/(batch_i+1), np.mean(land_metrics)) )
         loop.update(1)
+    loop.close()
 
     # Concatenate sample statistics
     true_positives, pred_scores, pred_labels = [
@@ -143,6 +144,7 @@ if __name__ == "__main__":
         model_yolo, model_regress,
         config=config,
         verbose=True,
+        save_imgs=2
     )
 
     print("Average Precisions:")

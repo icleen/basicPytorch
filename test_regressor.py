@@ -25,7 +25,7 @@ def evaluate(model, config, verbose=False, save_imgs=0):
     model.eval()
 
     # Get dataloader
-    dataset = CSVDataset( config, train=False, augment=False )
+    dataset = FolderDataset( config, train=False, augment=False )
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=config['batch_size'],

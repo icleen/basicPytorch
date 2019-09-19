@@ -27,7 +27,7 @@
   "gradient_accumulations": 2,
   "epochs": 20,
 
-  "checkpoint_path": "checkpoints/",
+  "checkpoint_path": "checkpoints/regress_landmark_{}.pth",
   "log_path": "regress_logs",
   "val_metrics": "regress_metrics.txt"
 

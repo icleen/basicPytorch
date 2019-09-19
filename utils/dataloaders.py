@@ -39,7 +39,7 @@ class BasicLoader(object):
         boxes[:,1:] = np.maximum(boxes[:,1:], 0)
         boxes[:,1:] = np.minimum(boxes[:,1:], 0.9999)
         img = transforms.ToTensor()(img)
-        boxes = torch.from_numpy(boxes)
+        boxes = torch.FloatTensor(boxes)
         if np.random.random() < 0.5:
             img, boxes = horisontal_flip(img, boxes)
         return img, boxes
@@ -157,7 +157,7 @@ class LandBoxEdit(BoxEdit):
         super(LandBoxEdit, self).__init__(lands)
         self.widths = widths
     def edit(self, boxes):
-        boxes = np.concatenate((boxes[:,:1], boxes[:,-self.lands:]), axis=1)
+        boxes = np.concatenate((boxes[:,:1], boxes[:,-2:]), axis=1)
         boxes = np.pad(boxes, ((0,0),(0,2)), 'constant', constant_values=self.widths)
         return boxes
 
@@ -205,7 +205,6 @@ class HipFileLoader(BasicLoader):
             img = transforms.ToTensor()(img)
             boxes = torch.from_numpy(boxes)
 
-        targets = None
         targets = torch.zeros((len(boxes), self.outsize))
         targets[:, 1:] = boxes
         return img_path, img, targets
@@ -214,56 +213,63 @@ class HipFileLoader(BasicLoader):
 class Part2Loader(BasicLoader):
     """docstring for Part2Loader."""
 
-    def __init__(self, img_size):
+    def __init__(self, config):
         super(Part2Loader, self).__init__()
-        self.img_size = (img_size, img_size)
+        self.num_lands = config['data_config']['landmarks']
+        self.outsize = 6
 
-    def load(self, img, label, augment=False):
+
+    def load(self, filename, augment=False):
+        with open(filename, 'r') as f:
+            lines = [line.strip() for line in f]
+        img_path = lines[0]
+
         #  Image
-        img = cv2.imread(img, 1)
+        img = cv2.imread(img_path, 1)
+
         #  Label
-        boxes = np.array(label, dtype=np.float64).reshape((-1, 7))
-        minxy = np.maximum(boxes[:,3:5] - (boxes[:,5:7]/2), 0)
-        maxxy = np.minimum(boxes[:,3:5] + (boxes[:,5:7]/2), 1)
-        minxy *= img.shape[0]
-        maxxy *= img.shape[0]
-        img1 = img[int(minxy[0,1]):int(maxxy[0,1]), int(minxy[0,0]):int(maxxy[0,0])]
-        img2 = img[int(minxy[1,1]):int(maxxy[1,1]), int(minxy[1,0]):int(maxxy[1,0])]
-        if img1.shape[0] < 1 or img1.shape[1] < 1 or img2.shape[0] < 1 or img2.shape[1] < 1:
-            import pdb; pdb.set_trace()
-        boxes = boxes[:, 1:3]
-        boxes *= img.shape[0]
-        if (boxes < minxy).any():
-            boxes = np.maximum(boxes, minxy)
-        if (boxes > maxxy).any():
-            boxes = np.minimum(boxes, maxxy)
-        boxes = boxes - minxy
-        boxes = boxes / np.array([[img1.shape[1], img1.shape[0]],
-                                                [img2.shape[1], img2.shape[0]]])
-        boxes = np.minimum(boxes, 1)
-        img1 = cv2.resize(img1, self.img_size, interpolation=cv2.INTER_CUBIC)
-        img2 = cv2.resize(img2, self.img_size, interpolation=cv2.INTER_CUBIC)
+        boxes = [[float(info) for info in line.split(',')] for line in lines[1:]]
+        boxes = np.array(boxes)
 
         # Apply augmentations
         if augment:
-            rnd = np.random.random()
-            if rnd < 0.1:
-                img1 = cv2.medianBlur(img1, 5)
-                img2 = cv2.medianBlur(img2, 5)
-            elif rnd < 0.2:
-                img1 = cv2.blur(img1,(7,7))
-                img2 = cv2.blur(img2,(7,7))
-            elif rnd < 0.5:
-                img1 = cv2.GaussianBlur(img1,(7,7),0)
-                img2 = cv2.GaussianBlur(img2,(7,7),0)
-            # if np.random.random() < 0.5:
-            #     img, boxes = rotate(img, boxes, np.random.normal(0.0, 7.0))
-            boxes += np.random.normal(0.0, 0.002, boxes.shape)
+            img, boxes = self.augment(img, boxes)
+        else:
+            img = transforms.ToTensor()(img)
+            boxes = torch.from_numpy(boxes)
 
-        img1 = transforms.ToTensor()(img1)
-        img2 = transforms.ToTensor()(img2)
-        if img1.shape != img2.shape:
-            print('not same:', img1.shape, img2.shape)
-        img = torch.stack([img1, img2])
-        targets = torch.FloatTensor(boxes)
-        return img, targets
+        landmarks = torch.zeros((len(boxes), self.num_lands+1))
+        landmarks[:,1:] = boxes[:, -self.num_lands:]
+        targets = torch.zeros((len(boxes), self.outsize))
+        targets[:,1:] = boxes[:, :-self.num_lands]
+
+        return img_path, img, (targets, landmarks)
+
+
+class RegressFileLoader(BasicLoader):
+    """docstring for RegressFileLoader."""
+
+    def __init__(self, config):
+        super(RegressFileLoader, self).__init__()
+        self.img_size = (config['img_size'], config['img_size'])
+
+    def load(self, filename, augment=False):
+        with open(filename, 'r') as f:
+            lines = [line.strip() for line in f]
+        img_path = lines[0]
+
+        #  Image
+        img = cv2.imread(img_path, 1)
+        img = cv2.resize(img, self.img_size, interpolation=cv2.INTER_CUBIC)
+        #  Label
+        boxes = [[float(info) for info in line.split(',')] for line in lines[1:]]
+        boxes = np.array(boxes)[:,1:3].reshape(1, -1)
+
+        # Apply augmentations
+        if augment:
+            img, boxes = self.augment(img, boxes)
+        else:
+            img = transforms.ToTensor()(img)
+            boxes = torch.from_numpy(boxes)
+
+        return img_path, img, boxes[0]

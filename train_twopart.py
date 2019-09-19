@@ -3,6 +3,7 @@ from __future__ import division
 from models import *
 # from utils.logger import *
 from utils.utils import *
+from utils.post_process import *
 from utils.datasets import *
 from test_twopart import evaluate
 
@@ -58,11 +59,10 @@ if __name__ == "__main__":
     config['img_size'] = img_size['yolo']
     model_yolo = Darknet( config ).to(device)
     model_yolo.apply(weights_init_normal)
-    # If specified we start from checkpoint
+
     if opt.continu:
         config['pretrained_weights'] = opt.continu
     if 'pretrained_weights' in config:
-        # config['pretrained_weights'] = config['pretrained_weights']['yolo']
         if config['pretrained_weights'].endswith(".pth"):
             model_yolo.load_state_dict(torch.load(config['pretrained_weights']))
         else:
@@ -72,16 +72,6 @@ if __name__ == "__main__":
     config['img_size'] = img_size['regress']
     model_regress = ConfigModel( config ).to(device)
     model_regress.apply(weights_init_normal)
-    # If specified we start from checkpoint
-    # if opt.continu:
-    #     config['pretrained_weights'] = opt.continu
-    # if 'pretrained_weights' in config:
-    #     config['pretrained_weights'] = config['pretrained_weights']['regress']
-    #     if config['pretrained_weights'].endswith(".pth"):
-    #         model_regress.load_state_dict(torch.load(config['pretrained_weights']))
-    #     else:
-    #         model_regress.load_darknet_weights(config['pretrained_weights'])
-
     config['img_size'] = img_size
 
     # Get dataloader
@@ -121,6 +111,7 @@ if __name__ == "__main__":
     'vloss': [],
     }
     val_acc = []
+    bsf = 100000
     modi = len(dataloader) // 5
     with open('{}_log.txt'.format(config['type']), 'w') as f:
         f.write('')
@@ -141,8 +132,13 @@ if __name__ == "__main__":
                 # Accumulates gradient before each step
                 optimizer_yolo.step()
                 optimizer_yolo.zero_grad()
+            outputs = non_max_suppression(outputs,
+                conf_thres=0.1, nms_thres=0.1)
+            outputs = post_process_twoobj(outputs)
 
-            imgsr = Variable(imgs[1].to(device))
+            imgsr = imgs[1]
+            imgsr = subbox_mask(imgsr, outputs)
+            imgsr = Variable(imgsr.to(device))
             targetsr = Variable(targets[1].to(device), requires_grad=False)
             outputs, loss = model_regress(imgsr, targetsr)
             loss.backward()
@@ -174,6 +170,7 @@ if __name__ == "__main__":
             precision, recall, AP, f1, ap_class, landm = evaluate(
                 model_yolo, model_regress,
                 config=config,
+                save_imgs=2
             )
             landmean = np.mean(landm)
             evaluation_metrics = [
@@ -201,14 +198,14 @@ if __name__ == "__main__":
             print('\tavg_dist:', landmean)
             print('\tmax_dist:', np.max(landm))
 
-            if bsf > avg_dist:
+            if bsf > landmean:
                 torch.save(model_yolo.state_dict(),
                     config['checkpoint_path']['yolo'].format('best')
                 )
                 torch.save(model_regress.state_dict(),
                     config['checkpoint_path']['regress'].format('best')
                 )
-                bsf = avg_dist
+                bsf = landmean
 
 
 """

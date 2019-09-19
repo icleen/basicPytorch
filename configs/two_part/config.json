@@ -6,14 +6,15 @@
   "vbatch_size": 8,
   "model_def": {
     "yolo": "configs/two_part/model_yolo.cfg",
-    "regress": "configs/two_part/model_regress.cfg"
+    "regress": "configs/landmark/model_regresss.cfg"
   },
 
   "data_config": {
     "type": "csv",
     "classes": 2,
-    "train": "configs/twoobj/train.csv",
-    "valid": "configs/twoobj/valid.csv",
+    "landmarks": 2,
+    "train": "/scratch/hip_data/orig/train/",
+    "valid": "/scratch/hip_data/orig/valid/",
     "names": "configs/twoobj/classes.names"
   },
   "pretrained_weights": "weights/darknet53.conv.74",

@@ -104,7 +104,7 @@ if __name__ == "__main__":
         if epoch % config['checkpoint_interval'] == 0:
             torch.save(model.state_dict(),
                 join(config['checkpoint_path'],
-                '{}-{}-{}.pth'.format(config['task'], config['type'], epoch))
+                '{}_{}_{}.pth'.format(config['task'], config['type'], epoch))
                 )
 
         if epoch % config['evaluation_interval'] == 0:

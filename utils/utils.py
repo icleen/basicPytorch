@@ -59,10 +59,36 @@ def xywh2xyxy(x):
     y[..., 1] = x[..., 1] - x[..., 3] / 2
     y[..., 2] = x[..., 0] + x[..., 2] / 2
     y[..., 3] = x[..., 1] + x[..., 3] / 2
-    if y.shape[-1] > 4:
-        y[..., 4] = x[..., 4]
-        y[..., 5] = x[..., 5]
     return y
+
+
+def center2box(x):
+    y = x.clone()
+    y[..., 0] = x[..., 0] - (x[..., 2] / 2)
+    y[..., 1] = x[..., 1] - (x[..., 3] / 2)
+    y[..., 2] = x[..., 0] + (x[..., 2] / 2)
+    y[..., 3] = x[..., 1] + (x[..., 3] / 2)
+    return y
+
+
+# for every other box: subbox_mask(imgs, boxes[::2])
+def subbox_mask(imgs, boxes):
+    assert imgs.shape[0] == boxes.shape[0]
+    for i, box in enumerate(boxes):
+        mask = imgs[i].clone()*0
+        mask[boxes[i,0]:boxes[i,2], boxes[i,1]:boxes[i,3]] = 1
+        imgs[i] = imgs[i] * mask
+    return imgs
+
+
+def convert_landmarks(boxes, landmarks):
+    assert boxes.shape[0] == landmarks.shape[0]
+    return (landmarks - boxes[:,:2]) / (boxes[:,2:] - boxes[:,:2])
+
+
+def revert_landmarks(boxes, landmarks):
+    assert boxes.shape[0] == landmarks.shape[0]
+    return landmarks * (boxes[:,2:] - boxes[:,:2]) + boxes[:,:2]
 
 
 def ap_per_class(tp, conf, pred_cls, target_cls):
