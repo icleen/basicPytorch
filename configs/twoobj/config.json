@@ -12,6 +12,7 @@
     "landmarks": 2,
     "train": "/scratch/hip_data/orig/train/",
     "valid": "/scratch/hip_data/orig/valid/",
+    "valid2": "/home/ilee141/workspace/basicPytorch/utils/valid",
     "names": "configs/twoobj/classes.names"
   },
 

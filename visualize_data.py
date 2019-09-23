@@ -137,7 +137,9 @@ def multilands_instance(config, instance):
 
     img = img.permute(1, 2, 0).numpy()*255
 
+    print(target[:, 2:6])
     tarbox = xywh2xyxy(target[:, 2:6]).numpy() * img.shape[1]
+    print(tarbox)
     targ_lands = target[:, -landmarks:].numpy() * img.shape[1]
     labels = target[:,1]
 
@@ -150,7 +152,7 @@ def multilands_instance(config, instance):
             xl, yl = targ_lands[j, li:li+2]
             img = cv2.circle(img, (xl, yl), 5, color, 1)
 
-    cv2.imwrite('visualized/instance.png'.format(i), img)
+    cv2.imwrite('visualized/instance.png', img)
 
     return
 

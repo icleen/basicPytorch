@@ -21,7 +21,7 @@ def orig(lines, folp):
 
         if 'test_images' in imgp:
             pfile = imgp.split('/')
-            pfile = pfile[-2] + '_' + pfile[-1]
+            pfile = pfile[-2][-1] + '_' + pfile[-1]
             wfile = osp.join(folp, pfile.split('.')[0]+'.txt')
         else:
             wfile = osp.join(folp, imgp.split('/')[-1].split('.')[0]+'.txt')
