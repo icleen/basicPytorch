@@ -107,7 +107,7 @@ def evaluate(model, config, verbose=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", type=str,
-        default="configs/config_twoobj.json", help="path to config file")
+        default="configs/twoobj/config.json", help="path to config file")
     parser.add_argument("-w", "--weights_path", type=str,
         default="checkpoints/yolov3_twoobj_best.pth", help="path to weights file")
     opt = parser.parse_args()
