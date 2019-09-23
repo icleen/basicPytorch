@@ -98,10 +98,10 @@ def hipobj_analyze(config):
 def multilands_analyze(config, examples=10):
     os.makedirs('visualized', exist_ok=True)
     landmarks = 2 if 'landmarks' not in config['data_config'] else config['data_config']['landmarks']
-    dataset = FolderDataset( config, train=True, augment=False )
+    dataset = FolderDataset( config, train=False, augment=False )
     colors = [(0,255,0), (0,0,255)]
     for i, (imgp, img, target) in enumerate(dataset):
-        print('iter:', i)
+        print('iter:', i, ',', imgp)
         # print(imgp, ',', target)
         img = img.permute(1, 2, 0).numpy()*255
 
@@ -124,12 +124,44 @@ def multilands_analyze(config, examples=10):
     return
 
 
+def multilands_instance(config, instance):
+    os.makedirs('visualized', exist_ok=True)
+    landmarks = 2 if 'landmarks' not in config['data_config'] else config['data_config']['landmarks']
+    dataset = FolderDataset( config, train=False, augment=False )
+    colors = [(0,255,0), (0,0,255)]
+    img_i = dataset.find_inst(instance)
+    if img_i is None:
+        print('couldnt find')
+        return
+    imgp, img, target = dataset[img_i]
+
+    img = img.permute(1, 2, 0).numpy()*255
+
+    tarbox = xywh2xyxy(target[:, 2:6]).numpy() * img.shape[1]
+    targ_lands = target[:, -landmarks:].numpy() * img.shape[1]
+    labels = target[:,1]
+
+    for j, box in enumerate(tarbox):
+        x1, y1, x2, y2 = box
+        color = colors[int(labels[j])]
+        img = cv2.rectangle(img, (x1, y1), (x2, y2), color, 1)
+        for li in range(landmarks//2):
+            li *= 2
+            xl, yl = targ_lands[j, li:li+2]
+            img = cv2.circle(img, (xl, yl), 5, color, 1)
+
+    cv2.imwrite('visualized/instance.png'.format(i), img)
+
+    return
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", type=str,
-        default="config/twoobj/config.json", help="path to config file")
+        default="configs/twoobj/config.json", help="path to config file")
     parser.add_argument("-e", "--examples", type=int,
         default=10, help="number of visualized examples to save")
+    parser.add_argument("-i", "--instance", type=str,
+        default=None, help="specific instance you want to find")
     opt = parser.parse_args()
     print(opt)
 
@@ -147,7 +179,10 @@ def main():
     #     # Load checkpoint weights
     #     model.load_state_dict(torch.load(opt.weights_path))
 
-    multilands_analyze(config, examples=opt.e)
+    if opt.instance is None:
+        multilands_analyze(config, examples=opt.examples)
+    else:
+        multilands_instance(config, opt.instance)
     # if 'landmark' in opt.config:
     #     landmark_analyze(config)
     # elif 'hipobj' in opt.config:

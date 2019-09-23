@@ -77,9 +77,9 @@ class FolderDataset(Dataset):
         self.data = [osp.join(folder_path, filep) for filep in os.listdir(folder_path)]
 
         self.loader = None
-        if config['type'] == 'yolov3':
+        if config['task'] == 'yolov3':
             self.loader = HipFileLoader(config)
-        elif config['type'] == 'two_part':
+        elif config['task'] == 'two_part':
             self.loader = HipFileLoader(config)
         elif config['task'] == 'regress':
             self.loader = RegressFileLoader(config)
@@ -98,6 +98,16 @@ class FolderDataset(Dataset):
 
     def __getitem__(self, index):
         return self.loader.load(self.data[index % len(self.data)], self.augment)
+
+    def find_inst(self, instance):
+        for i, filename in enumerate(self.data):
+            if instance in filename:
+                return i
+            # with open(filename, 'r') as f:
+            #     lines = [line.strip() for line in f]
+            #     if instance == lines[0]:
+            #         return i
+        return None
 
     def collate_fn(self, batch):
         paths, imgs, targets = list(zip(*batch))

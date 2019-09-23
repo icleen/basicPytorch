@@ -2,7 +2,7 @@ import os, sys
 import os.path as osp
 import csv, json, cv2
 import numpy as np
-
+from edit_data import edit_instance
 
 def orig(lines, folp):
     for line in lines:
@@ -17,7 +17,14 @@ def orig(lines, folp):
             boxes = np.array(line, dtype=np.float64).reshape((-1, 7))
             boxes = np.concatenate((boxes[:,:1], boxes[:,3:], boxes[:,1:3]), axis=1)
 
-        wfile = osp.join(folp, imgp.split('/')[-1].split('.')[0]+'.txt')
+        boxes = edit_instance(imgp, boxes)
+
+        if 'test_images' in imgp:
+            pfile = imgp.split('/')
+            pfile = pfile[-2] + '_' + pfile[-1]
+            wfile = osp.join(folp, pfile.split('.')[0]+'.txt')
+        else:
+            wfile = osp.join(folp, imgp.split('/')[-1].split('.')[0]+'.txt')
         with open(wfile, 'w') as f:
             f.write(imgp)
             f.write('\n')
@@ -66,7 +73,7 @@ def main():
     if not osp.exists(folp):
         os.makedirs(folp)
 
-    alt(lines, folp)
+    orig(lines, folp)
 
 
 if __name__ == '__main__':

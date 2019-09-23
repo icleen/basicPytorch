@@ -63,12 +63,20 @@ def xywh2xyxy(x):
 
 
 def center2box(x):
-    y = x.clone()
+    y = x.copy()
     y[..., 0] = x[..., 0] - (x[..., 2] / 2)
     y[..., 1] = x[..., 1] - (x[..., 3] / 2)
     y[..., 2] = x[..., 0] + (x[..., 2] / 2)
     y[..., 3] = x[..., 1] + (x[..., 3] / 2)
     return y
+
+def box2center(y):
+    x = y.copy()
+    x[..., 0] = (y[..., 2] + y[..., 0]) / 2
+    x[..., 1] = (y[..., 3] + y[..., 1]) / 2
+    x[..., 2] = y[..., 2] + y[..., 0]
+    x[..., 3] = y[..., 3] - y[..., 1]
+    return x
 
 
 # for every other box: subbox_mask(imgs, boxes[::2])
