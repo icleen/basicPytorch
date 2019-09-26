@@ -4,15 +4,18 @@ import numpy as np
 import cv2
 
 
-def phantom(n=256,ellipses=None):
+def phantom(psize=256,ellipses=None):
     if ellipses is None:
         ellipses = phantom_ellipses('random')
 
-    img = np.zeros((n, n))
-    wh = n//2
+    img = np.zeros((psize, psize))
+    cimg = np.zeros((psize, psize))
+    wh = psize//2
     prevI = 0
-    ygrid, xgrid = np.mgrid[-1:1:(1j*n), -1:1:(1j*n)]
-    for ellip in ellipses:
+    ygrid, xgrid = np.mgrid[-1:1:(1j*psize), -1:1:(1j*psize)]
+    maxes = []
+    colors = [255, 50, 0, 0, 200, 200, 200, 200, 200, 200]
+    for i, ellip in enumerate(ellipses):
         I   = ellip[0]
         a2  = ellip[1]**2
         b2  = ellip[2]**2
@@ -25,64 +28,50 @@ def phantom(n=256,ellipses=None):
         cos_p = np.cos(phi)
         sin_p = np.sin(phi)
         # Find the pixels within the ellipse
-        locs = (((x * cos_p + y * sin_p)**2) / a2
-              + ((y * cos_p - x * sin_p)**2) / b2) <= 1
+        dists = (((x * cos_p + y * sin_p)**2) / a2
+              + ((y * cos_p - x * sin_p)**2) / b2)
+        locs = dists <= 1
+        # dists[dists > 1] = 0
+        # print(dists.max(), dists.argmax())
+        # maxes.append(dists == dists.max())
         # Add the ellipse intensity to those pixels
         img[locs] += I
 
-    rot = ellipses[0,-1]
-    rows,cols = img.shape
-    M = cv2.getRotationMatrix2D((cols/2,rows/2),rot,1)
-    img = cv2.warpAffine(img,M,(cols,rows))
+        # cv2.imwrite('phantoms/test.png', img*255)
+        print('value:', I)
+        xi = x0 * wh + wh
+        yi = y0 * wh + wh
+        center = (int(xi), int(yi))
+        print('center:', center)
+        ai = ellip[1]*wh
+        bi = ellip[2]*wh
+        axes = (int(ai), int(bi))
+        print('axes:', axes)
+        phii = ellip[5]
+        print('angle:', phii)
+        # cimg = cv2.circle(cimg, (center[0], center[1]+axes[1]), 5, 255, -1)
+        # cimg = cv2.circle(cimg, (center[0]+axes[0], center[1]), 5, 255, -1)
+        cimg += cv2.ellipse(np.zeros((psize, psize)), center, axes, phii, 0, 360, I, -1)
+        # import pdb; pdb.set_trace()
+        # cv2.imwrite('phantoms/test2.png', cimg)
+
+    # rot = ellipses[0,-1]
+    # rows,cols = img.shape
+    # M = cv2.getRotationMatrix2D((cols/2,rows/2),rot,1)
+    # img = cv2.warpAffine(img,M,(cols,rows))
+
+    # cimg = img.copy()
+    # for mx in maxes:
+    #     cimg[mx] = 2
+    # cimg = np.ones((n, n, 3))
+    # cimg *= np.expand_dims(img, -1)
+    # # cimg = np.stack([img, img, img]).reshape(n, n, 3)
+    # cimg *= 255
+    # for mx in maxes:
+    #     cimg = cv2.circle(cimg, np.unravel_index(mx, img.shape), 5, (255, 0, 0), -1)
+    # import pdb; pdb.set_trace()
+    cv2.imwrite('phantoms/test.png', cimg*255)
     return img
-
-
-# def apply_phantom(img, ellipses):
-#     n = img.shape[0]
-#     wh = n//2
-#     prevI = 0
-#     ygrid, xgrid = np.mgrid[-1:1:(1j*n), -1:1:(1j*n)]
-#     for ellip in ellipses:
-#         I   = ellip[0]
-#         a2  = ellip[1]**2
-#         b2  = ellip[2]**2
-#         x0  = ellip[3]
-#         y0  = ellip[4]
-#         phi = ellip[5] * np.pi / 180  # Rotation angle in radians
-#
-#         # Create the offset x and y values for the grid
-#         x = xgrid - x0
-#         y = ygrid - y0
-#
-#         cos_p = np.cos(phi)
-#         sin_p = np.sin(phi)
-#
-#         # Find the pixels within the ellipse
-#         locs = (((x * cos_p + y * sin_p)**2) / a2
-#               + ((y * cos_p - x * sin_p)**2) / b2) <= 1
-#         # Add the ellipse intensity to those pixels
-#         img[locs] += I
-#         # print(I)
-#
-#         # a2  = ellip[1]**2 * wh
-#         # b2  = ellip[2]**2 * wh
-#         # ab = (int(a2), int(b2))
-#         # x0  = ellip[3]*n + wh
-#         # y0  = ellip[4]*n + wh
-#         # xy = (int(x0+0.5), int(y0+0.5))
-#         # phi = ellip[5]
-#         # prevI += I
-#         # temp = cv2.ellipse(cvimg.copy(), center=xy, axes=ab, angle=phi, startAngle=0, endAngle=360, color=I, thickness=-1)
-#         # cvimg[temp!=cvimg] += I
-#         # # img = cv2.ellipse(img, (125, 125), (100, 50), angle=90, startAngle=0, endAngle=360, color=255, thickness=-1)
-#         # # print(prevI)
-#
-#     # cv2.imwrite('temp.png', cvimg*255)
-#     rot = ellipses[0,-1]
-#     rows,cols = img.shape
-#     M = cv2.getRotationMatrix2D((cols/2,rows/2),90,1)
-#     dst = cv2.warpAffine(img,M,(cols,rows))
-#     return img
 
 
 def phantom_ellipses(name='modified'):
@@ -139,10 +128,10 @@ def _random_shepp_logan():
 
 
 def main():
-    psize = 416 if len(sys.argv) < 2 else sys.argv[1]
+    psize = 416 if len(sys.argv) < 2 else int(sys.argv[1])
 
     os.makedirs('phantoms', exist_ok=True)
-    for i in range(100):
+    for i in range(1):
         img = phantom(psize)
         cv2.imwrite('phantoms/phantom_{}.png'.format(i), img*255)
 
