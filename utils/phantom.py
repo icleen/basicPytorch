@@ -10,7 +10,10 @@ def phantom(psize=256,ellipses=None):
         # ellipses = phantom_ellipses()
 
     img = np.zeros((psize, psize))
+    cimg = np.zeros((psize, psize))
     wh = psize//2
+    points = []
+    rot = ellipses[0,-1]
     for i, ellip in enumerate(ellipses):
         I   = ellip[0]
         xi = ellip[3] * wh + wh
@@ -21,23 +24,42 @@ def phantom(psize=256,ellipses=None):
         axes = (int(ai), int(bi))
         phii = ellip[5]
         img += cv2.ellipse(np.zeros((psize, psize)), center, axes, phii, 0, 360, I, -1)
+        cimg += cv2.ellipse(np.zeros((psize, psize)), center, axes, phii, 0, 360, I, -1)
 
         if i in [2, 3]:
             M = cv2.getRotationMatrix2D((0,0),-phii,1)
             transxy = [center[0], center[1]]
 
-            point = [0, axes[1], 1]
-            point = np.matmul(M, point) + transxy
-            point = (int(point[0]), int(point[1]))
-            img = cv2.circle(img, point, 5, 0.5, -1)
+            point1 = [0, axes[1], 1]
+            point1 = np.matmul(M, point1) + transxy
+            points.append(point1)
+            # point1 = (int(point1[0]), int(point1[1]))
+            # img = cv2.circle(img, point1, 5, 0.5, -1)
 
-            point = [0, -axes[1], 1]
-            point = np.matmul(M, point) + transxy
-            point = (int(point[0]), int(point[1]))
-            img = cv2.circle(img, point, 5, 0.5, -1)
-    # rot = ellipses[0,-1]
-    # M = cv2.getRotationMatrix2D((wh,wh),rot,1)
-    # img = cv2.warpAffine(img,M,(psize,psize))
+            point2 = [0, -axes[1], 1]
+            point2 = np.matmul(M, point2) + transxy
+            points.append(point2)
+            # point2 = (int(point2[0]), int(point2[1]))
+            # img = cv2.circle(img, point2, 5, 0.5, -1)
+
+            # points.append((point1, point2))
+    rot = ellipses[0,-1]
+    M = cv2.getRotationMatrix2D((wh,wh),rot,1)
+    img = cv2.warpAffine(img,M,(psize,psize))
+    # cimg = cv2.warpAffine(cimg,M,(psize,psize))
+    # for pts in points:
+    #     for point in pts:
+    #         point = [point[0], point[1], 1]
+    #         point = np.matmul(M, point)
+    #         cimg = cv2.circle(cimg, point, 5, 0.5, -1)
+    npoints = []
+    for point in points:
+        point = point.tolist() + [1]
+        point = np.matmul(M, point)
+        point = (int(point[0]), int(point[1]))
+        npoints.append(point)
+        img = cv2.circle(img, point, 5, 0.5, -1)
+    # cv2.imwrite('phantoms/test.png', cimg*255)
     return img
 
 
@@ -132,7 +154,7 @@ def _mod_shepp_logan():
 def _random_shepp_logan():
     phntm = _mod_shepp_logan()
     # phntm += np.random.normal(0.0, 0.01, phntm.shape)
-    phntm[2:,-2] += np.random.normal(0.0, 5, phntm[2:,-1].shape)
+    phntm[2:,-2] += np.random.normal(0.0, 3, phntm[2:,-1].shape)
     phntm[:, -2] += np.random.normal(0.0, 5, 1)
     phntm[:, -1] += np.random.normal(0.0, 90, 1)
     phntm[:, 3] += np.random.normal(0.0, 0.1, 1)
