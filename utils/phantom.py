@@ -7,71 +7,128 @@ import cv2
 def phantom(psize=256,ellipses=None):
     if ellipses is None:
         ellipses = phantom_ellipses('random')
+        # ellipses = phantom_ellipses()
 
     img = np.zeros((psize, psize))
     cimg = np.zeros((psize, psize))
     wh = psize//2
-    prevI = 0
-    ygrid, xgrid = np.mgrid[-1:1:(1j*psize), -1:1:(1j*psize)]
-    maxes = []
-    colors = [255, 50, 0, 0, 200, 200, 200, 200, 200, 200]
+    true_center = (wh, wh)
     for i, ellip in enumerate(ellipses):
         I   = ellip[0]
-        a2  = ellip[1]**2
-        b2  = ellip[2]**2
-        x0  = ellip[3]
-        y0  = ellip[4]
-        phi = ellip[5] * np.pi / 180  # Rotation angle in radians
-        # Create the offset x and y values for the grid
-        x = xgrid - x0
-        y = ygrid - y0
-        cos_p = np.cos(phi)
-        sin_p = np.sin(phi)
-        # Find the pixels within the ellipse
-        dists = (((x * cos_p + y * sin_p)**2) / a2
-              + ((y * cos_p - x * sin_p)**2) / b2)
-        locs = dists <= 1
-        # dists[dists > 1] = 0
-        # print(dists.max(), dists.argmax())
-        # maxes.append(dists == dists.max())
-        # Add the ellipse intensity to those pixels
-        img[locs] += I
-
-        # cv2.imwrite('phantoms/test.png', img*255)
-        print('value:', I)
-        xi = x0 * wh + wh
-        yi = y0 * wh + wh
+        xi = ellip[3] * wh + wh
+        yi = ellip[4] * wh + wh
         center = (int(xi), int(yi))
-        print('center:', center)
         ai = ellip[1]*wh
         bi = ellip[2]*wh
         axes = (int(ai), int(bi))
-        print('axes:', axes)
         phii = ellip[5]
-        print('angle:', phii)
-        # cimg = cv2.circle(cimg, (center[0], center[1]+axes[1]), 5, 255, -1)
-        # cimg = cv2.circle(cimg, (center[0]+axes[0], center[1]), 5, 255, -1)
+        img += cv2.ellipse(np.zeros((psize, psize)), center, axes, phii, 0, 360, I, -1)
+
+        # phii = 30
+        # print(phii)
+        # M = cv2.getRotationMatrix2D((wh,wh),-phii,1)
+        # img2 = cv2.warpAffine(img.copy(),M,(psize,psize))
+        # cv2.imwrite('phantoms/test2.png', img2*255)
+
         cimg += cv2.ellipse(np.zeros((psize, psize)), center, axes, phii, 0, 360, I, -1)
+        # point = (center[0]+axes[0], center[1])
+        # temp = np.zeros((psize, psize))
+        # temp[point] = 1
+        # temp = cv2.warpAffine(temp, M, (psize,psize))
+        # ind = np.unravel_index(temp.argmax(), temp.shape)
+        # cimg = cv2.circle(cimg, ind, 5, 0.5, -1)
+        #
+        # point = [center[0]+axes[0], center[1], 1]
+        # point = np.matmul(M, point)
+        # cimg = cv2.circle(cimg, (int(point[0]), int(point[1])), 5, 0.5, -1)
+
+        # M = cv2.getRotationMatrix2D((wh,wh),-1*(phii+90),1)
+
+        if i < 4:
+            # img = cv2.circle(img, (center[0]+axes[0], center[1]), 5, 0.5, -1)
+            # img = cv2.circle(img, (center[0]-axes[0], center[1]), 5, 0.5, -1)
+            img = cv2.circle(img, (center[0], center[1]+axes[1]), 5, 0.5, -1)
+            img = cv2.circle(img, (center[0], center[1]-axes[1]), 5, 0.5, -1)
+
+            M = cv2.getRotationMatrix2D((wh,wh),-phii,1)
+            transxy = [center[0] - true_center[0], center[1] - true_center[1]]
+
+            # point = [true_center[0]+axes[0], true_center[1], 1]
+            # point = np.matmul(M, point) + transxy
+            # point = (int(point[0]), int(point[1]))
+            # cimg = cv2.circle(cimg, point, 5, 0.5, -1)
+            #
+            # point = [true_center[0]-axes[0], true_center[1], 1]
+            # point = np.matmul(M, point) + transxy
+            # point = (int(point[0]), int(point[1]))
+            # cimg = cv2.circle(cimg, point, 5, 0.5, -1)
+
+            point = [true_center[0], true_center[1]+axes[1], 1]
+            point = np.matmul(M, point) + transxy
+            point = (int(point[0]), int(point[1]))
+            cimg = cv2.circle(cimg, point, 5, 0.5, -1)
+
+            point = [true_center[0], true_center[1]-axes[1], 1]
+            point = np.matmul(M, point) + transxy
+            point = (int(point[0]), int(point[1]))
+            cimg = cv2.circle(cimg, point, 5, 0.5, -1)
+        #     break
+        #     import pdb; pdb.set_trace()
+        # input('wait...')
         # import pdb; pdb.set_trace()
-        # cv2.imwrite('phantoms/test2.png', cimg)
-
     # rot = ellipses[0,-1]
-    # rows,cols = img.shape
-    # M = cv2.getRotationMatrix2D((cols/2,rows/2),rot,1)
-    # img = cv2.warpAffine(img,M,(cols,rows))
-
-    # cimg = img.copy()
-    # for mx in maxes:
-    #     cimg[mx] = 2
-    # cimg = np.ones((n, n, 3))
-    # cimg *= np.expand_dims(img, -1)
-    # # cimg = np.stack([img, img, img]).reshape(n, n, 3)
-    # cimg *= 255
-    # for mx in maxes:
-    #     cimg = cv2.circle(cimg, np.unravel_index(mx, img.shape), 5, (255, 0, 0), -1)
-    # import pdb; pdb.set_trace()
-    cv2.imwrite('phantoms/test.png', cimg*255)
+    # M = cv2.getRotationMatrix2D((wh,wh),rot,1)
+    # img = cv2.warpAffine(img,M,(psize,psize))
+    cv2.imwrite('phantoms/test.png', img*255)
+    cv2.imwrite('phantoms/test3.png', cimg*255)
     return img
+
+
+def test():
+    psize = 512
+    wh = psize//2
+    true_center = (wh, wh)
+    center = (200, 256)
+    axes = (100, 50)
+    phii = 30
+
+    img = np.zeros((psize, psize))
+    img = cv2.ellipse(img, center, axes, 0, 0, 360, 255, -1)
+    img = cv2.circle(img, (center[0]+axes[0], center[1]), 5, 190, -1)
+    img = cv2.circle(img, (center[0]-axes[0], center[1]), 5, 190, -1)
+    img = cv2.circle(img, (center[0], center[1]+axes[1]), 5, 190, -1)
+    img = cv2.circle(img, (center[0], center[1]-axes[1]), 5, 190, -1)
+    M = cv2.getRotationMatrix2D((wh,wh),-phii,1)
+    img = cv2.warpAffine(img,M,(psize,psize))
+    cv2.imwrite('phantoms/test.png', img)
+
+    img = np.zeros((psize, psize))
+    img = cv2.ellipse(img, center, axes, phii, 0, 360, 255, -1)
+
+    transxy = [center[0] - true_center[0], center[1] - true_center[1]]
+
+    point = [true_center[0]+axes[0], true_center[1], 1]
+    point = np.matmul(M, point) + transxy
+    point = (int(point[0]), int(point[1]))
+    img = cv2.circle(img, point, 5, 190, -1)
+
+    point = [true_center[0]-axes[0], true_center[1], 1]
+    point = np.matmul(M, point) + transxy
+    point = (int(point[0]), int(point[1]))
+    img = cv2.circle(img, point, 5, 190, -1)
+
+    point = [true_center[0], true_center[1]+axes[1], 1]
+    point = np.matmul(M, point) + transxy
+    point = (int(point[0]), int(point[1]))
+    img = cv2.circle(img, point, 5, 190, -1)
+
+    point = [true_center[0], true_center[1]-axes[1], 1]
+    point = np.matmul(M, point) + transxy
+    point = (int(point[0]), int(point[1]))
+    img = cv2.circle(img, point, 5, 190, -1)
+    cv2.imwrite('phantoms/test2.png', img)
+
+    # import pdb; pdb.set_trace()
 
 
 def phantom_ellipses(name='modified'):
@@ -135,6 +192,7 @@ def main():
         img = phantom(psize)
         cv2.imwrite('phantoms/phantom_{}.png'.format(i), img*255)
 
+    # test()
 
 if __name__ == '__main__':
     main()
