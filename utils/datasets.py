@@ -21,6 +21,22 @@ def expand3chans(a, dims=(3,-1,-1)):
     return a.expand(dims)
 
 
+class PhantomSet(Dataset):
+    """docstring for PhantomSet."""
+
+    def __init__(self, config):
+        super(PhantomSet, self).__init__()
+        self.length = config['data_config']['iters']
+        self.loader = PhantomLoad(config)
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, idx):
+        return self.loader.load()
+
+
+
 class MNISTClasses(Dataset):
     """docstring for MNISTClasses."""
 

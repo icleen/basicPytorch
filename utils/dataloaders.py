@@ -143,6 +143,28 @@ class HipLoader(BasicLoader):
         return img, targets
 
 
+class PhantomLoad(BasicLoader):
+    """docstring for PhantomLoad."""
+
+    def __init__(self, config):
+        super(PhantomLoad, self).__init__()
+        # self.config = config
+        self.img_size = config['img_size']
+        self.widths = config['data_config']['widths']
+        from utils.phantom import phantom
+        self.imgsource = phantom
+
+    def load(self):
+        img, points = self.imgsource(self.img_size)
+        img = transforms.ToTensor()(img)
+        points = np.array(points) / self.img_size
+        points = np.pad(points, ((0,0),(2,0)), 'constant', constant_values=0)
+        points = np.pad(points, ((0,0),(0,2)), 'constant', constant_values=self.widths)
+        points[:,1] += [i for i in range(len(points))]
+        points = torch.from_numpy(points)
+        return 'phantom', img, points
+
+
 class BoxEdit(object):
     """docstring for BoxEdit."""
     def __init__(self, lands=2):
