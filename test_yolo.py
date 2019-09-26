@@ -26,11 +26,16 @@ def evaluate(model, config, verbose=False):
     model.eval()
 
     # Get dataloader
-    dataset = FolderDataset( config, train=False, augment=False )
+    if config['type'] == 'phantom':
+        dataset = PhantomSet( config, train=False, augment=False )
+    else:
+        dataset = FolderDataset( config, train=False, augment=False )
     dataloader = torch.utils.data.DataLoader(
         dataset, batch_size=config['vbatch_size'], shuffle=False,
         num_workers=1, collate_fn=dataset.collate_fn
     )
+
+    expected = 2 if 'expected_objects' not in config['data_config'] else config['data_config']['expected_objects']
 
     conf_thres = config['conf_thres']
     iou_thres = config['iou_thres']
@@ -42,7 +47,7 @@ def evaluate(model, config, verbose=False):
     labels = []
     sample_metrics = []  # List of tuples (TP, confs, pred)
     land_metrics = None
-    landm_set = ['twoobj', 'landmark', 'part2']
+    landm_set = ['twoobj', 'landmark', 'part2', 'phantom']
     if model.type in landm_set or model.type == 'multilands':
         land_metrics = []  # List of np arrs (landmark dists)
     loop = tqdm.tqdm(total=len(dataloader), position=0)
@@ -55,7 +60,7 @@ def evaluate(model, config, verbose=False):
             if model.type == 'twoobj':
                 outputs = non_max_suppression_twoobj(outputs,
                     conf_thres=conf_thres, nms_thres=nms_thres)
-                outputs = post_process_expected(outputs, expected=2)
+                outputs = post_process_expected(outputs, expected=expected)
             elif model.type == 'multilands':
                 outputs = non_max_suppression_multilands(outputs,
                     conf_thres=conf_thres, nms_thres=nms_thres,
@@ -64,7 +69,7 @@ def evaluate(model, config, verbose=False):
             else:
                 outputs = non_max_suppression(outputs,
                     conf_thres=conf_thres, nms_thres=nms_thres)
-                outputs = post_process_expected(outputs, expected=2)
+                outputs = post_process_expected(outputs, expected=expected)
 
         # Extract labels
         labels += targets[:, 1].tolist()
@@ -76,7 +81,7 @@ def evaluate(model, config, verbose=False):
         if model.type in landm_set:
             if model.type == 'twoobj':
                 targets[:, -2:] *= img_size
-            pdists = get_land_statistics(outputs, targets)
+            pdists = get_land_statistics(outputs, targets, expected=expected)
             land_metrics += list(pdists)
 
             loop.set_description( 'avg_dist:{:.3f}'.format(np.mean(land_metrics)) )

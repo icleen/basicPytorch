@@ -155,6 +155,7 @@ def main():
         for point in points:
             img = cv2.circle(img, (int(point[0]), int(point[1])), 5, 0.5, -1)
         cv2.imwrite('phantoms/phantom_{}.png'.format(i), img*255)
+        import pdb; pdb.set_trace()
 
     # test()
 

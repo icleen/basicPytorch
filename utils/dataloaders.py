@@ -156,12 +156,16 @@ class PhantomLoad(BasicLoader):
 
     def load(self):
         img, points = self.imgsource(self.img_size)
+        img = np.dstack((img, img, img)).astype(np.float32)*255
         img = transforms.ToTensor()(img)
-        points = np.array(points) / self.img_size
+        points = np.array(points, dtype=np.float32) / self.img_size
         points = np.pad(points, ((0,0),(2,0)), 'constant', constant_values=0)
         points = np.pad(points, ((0,0),(0,2)), 'constant', constant_values=self.widths)
         points[:,1] += [i for i in range(len(points))]
         points = torch.from_numpy(points)
+        # targets = torch.zeros((points.shape[0], points.shape[1]))
+        # targets += points
+        # return 'phantom', img, targets
         return 'phantom', img, points
 
 

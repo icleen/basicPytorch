@@ -1,19 +1,19 @@
 {
   "task": "yolov3",
-  "type": "multilands",
+  "type": "phantom",
 
   "batch_size": 4,
   "vbatch_size": 10,
-  "model_def": "configs/multilands/model.cfg",
+  "model_def": "configs/landmark/model_phantom.cfg",
 
   "data_config": {
     "type": "csv",
-    "classes": 2,
-    "landmarks": 4,
+    "classes": 4,
+    "widths": 0.1,
+    "landmarks": 2,
     "expected_objects": 4,
-    "train": "/scratch/hip_data/alt/train/",
-    "valid": "/scratch/hip_data/alt/valid/",
-    "names": "configs/twoobj/classes.names"
+    "iters": 4000,
+    "names": "configs/phantom/classes.names"
   },
 
   "pretrained_weights": "weights/darknet53.conv.74",
@@ -24,7 +24,6 @@
   "img_size": 416,
   "checkpoint_interval": 1,
   "evaluation_interval": 1,
-  "compute_map": false,
   "multiscale_training": true,
   "gradient_accumulations": 2,
   "epochs": 20,
@@ -33,8 +32,8 @@
   "conf_thres": 0.8,
   "nms_thres": 0.5,
 
-  "checkpoint_path": "checkpoints/yolov3_multilands_{}.pth",
-  "log_path": "multilands_logs",
-  "val_metrics": "multilands_metrics.txt"
+  "checkpoint_path": "checkpoints/yolov3_phantom_{}.pth",
+  "log_path": "phantom_logs",
+  "val_metrics": "phantom_metrics.txt"
 
 }

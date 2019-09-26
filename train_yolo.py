@@ -37,9 +37,9 @@ if __name__ == "__main__":
     config = json.load(open(opt.config))
     # print(config)
 
-    landm_set = ['twoobj', 'landmark', 'part2']
+    landm_set = ['twoobj', 'landmark', 'part2', 'phantom']
 
-    config['log_path'] = config['log_path'].format(config['type'])
+    config['log_path'] = config['log_path']
     os.makedirs(config['log_path'], exist_ok=True)
     os.makedirs('output', exist_ok=True)
     os.makedirs('/'.join(config['checkpoint_path'].split('/')[:-1]), exist_ok=True)
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     class_names = load_classes(
-        config['data_config']['names'].format(config['type']) )
+        config['data_config']['names'] )
 
     # Initiate model
     model = Darknet( config ).to(device)
@@ -65,7 +65,10 @@ if __name__ == "__main__":
             model.load_darknet_weights(config['pretrained_weights'])
 
     # Get dataloader
-    dataset = FolderDataset( config, train=True, augment=True )
+    if config['type'] == 'phantom':
+        dataset = PhantomSet( config, train=True, augment=True )
+    else:
+        dataset = FolderDataset( config, train=True, augment=True )
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=config['batch_size'],
@@ -97,7 +100,7 @@ if __name__ == "__main__":
     ]
     val_acc = []
     modi = len(dataloader) // 5
-    with open('{}_log.txt'.format(config['type']), 'w') as f:
+    with open('{}_log.txt', 'w') as f:
         f.write('')
     bsf = 0.0
     if model.type in landm_set:
@@ -131,6 +134,7 @@ if __name__ == "__main__":
             torch.save(model.state_dict(),
                 config['checkpoint_path'].format(epoch)
             )
+            # print('saved:', config['checkpoint_path'].format(epoch))
 
         if epoch % config['evaluation_interval'] == 0:
             print("\n---- Evaluating Model ----")
@@ -150,7 +154,7 @@ if __name__ == "__main__":
                 evaluation_metrics.append( ("landm", landm.mean()) )
             logger.list_of_scalars_summary(evaluation_metrics, epoch)
             val_acc.append(evaluation_metrics)
-            with open(config['val_metrics'].format(config['type']), 'w') as f:
+            with open(config['val_metrics'], 'w') as f:
                 f.write(str(val_acc))
             # Print class APs and mAP
             ap_table = [["Index", "Class name", "AP"]]

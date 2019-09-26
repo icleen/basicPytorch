@@ -182,8 +182,8 @@ def compute_ap(recall, precision):
     return ap
 
 
-def get_land_statistics(outputs, targets):
-    land_dists = np.zeros((len(outputs), 2))
+def get_land_statistics(outputs, targets, expected=2):
+    land_dists = np.zeros((len(outputs), expected))
     for sample_i in range(len(outputs)):
         if outputs[sample_i] is None:
             continue

@@ -17,7 +17,7 @@ def run_modules(x, modules, targets=None, layer_outs=False):
         'linear', 'flatten', 'convtranspose2d']
     losslays = ['reconstruction', 'classifier', 'regressor', 'latent']
     for i, (module_def, module) in enumerate(modules):
-        # print('x:',x.shape,module_def['type'])
+        # print('x:',x.shape,module_def['type'],x.dtype)
         if module_def['type'] in normals:
             x = module(x)
         elif module_def['type'] == 'route':
