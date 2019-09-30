@@ -202,8 +202,8 @@ def get_land_statistics(outputs, targets, expected=2):
     return np.mean(land_dists, axis=1)
 
 
-def get_multiland_statistics(outputs, targets, lands=1):
-    land_dists = np.zeros((len(outputs), lands))
+def get_multiland_statistics(outputs, targets, lands=1, expected=1):
+    land_dists = np.zeros((len(outputs), lands*expected))
     tlands = lands * 2
     for sample_i in range(len(outputs)):
         if outputs[sample_i] is None:
@@ -214,6 +214,7 @@ def get_multiland_statistics(outputs, targets, lands=1):
         pred_lands = outputs[sample_i][:, 5:5+tlands].contiguous().view(-1, 2)
         targ_lands = targets[targets[:, 0] == sample_i][:, -tlands:].view(-1, 2)
         if len(targ_lands) == len(pred_lands):
+            # import pdb; pdb.set_trace()
             for pred_i, pland in enumerate(pred_lands):
                 dist = torch.dist(pland, targ_lands[pred_i], 2)
                 land_dists[sample_i, pred_i] = dist.numpy()

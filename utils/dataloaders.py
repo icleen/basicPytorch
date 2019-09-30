@@ -225,7 +225,7 @@ class HipFileLoader(BasicLoader):
 
     def __init__(self, config):
         super(HipFileLoader, self).__init__()
-        self.num_lands = config['data_config']['landmarks']
+        self.num_lands = config['data_config']['landmarks']*2
         self.boxedit = BoxEdit(self.num_lands)
         self.outsize = 6 + self.num_lands
         if config['type'] == 'landmark':

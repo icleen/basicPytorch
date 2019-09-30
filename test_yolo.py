@@ -89,7 +89,7 @@ def evaluate(model, config, verbose=False):
         elif model.type in landsm_set:
             lands = config['data_config']['landmarks']
             targets[:, -(lands*2):] *= img_size
-            pdists = get_multiland_statistics(outputs, targets, lands)
+            pdists = get_multiland_statistics(outputs, targets, lands=lands, expected=expected)
             land_metrics += pdists.tolist()
 
             loop.set_description( 'avg_dist:{:.3f}'.format(np.mean(land_metrics)) )
