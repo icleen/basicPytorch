@@ -153,7 +153,7 @@ class PhantomLoad(BasicLoader):
         from utils.phantom import phantom
         self.imgsource = phantom
 
-    def load(self):
+    def load(self, idx):
         img, points = self.imgsource(self.img_size)
         img = np.dstack((img, img, img)).astype(np.float32)*255
         img = transforms.ToTensor()(img)
@@ -162,7 +162,7 @@ class PhantomLoad(BasicLoader):
         points = np.pad(points, ((0,0),(0,2)), 'constant', constant_values=self.widths)
         points[:,1] += [i for i in range(len(points))]
         points = torch.from_numpy(points)
-        return 'phantom', img, points
+        return 'phantom_{}.png'.format(idx), img, points
 
 class PhantomObjLoad(BasicLoader):
     """docstring for PhantomObjLoad."""
@@ -174,11 +174,17 @@ class PhantomObjLoad(BasicLoader):
         from utils.phantom import phantom
         self.imgsource = phantom
 
-    def load(self):
+    def load(self, idx):
         img, points = self.imgsource(self.img_size)
         img = np.dstack((img, img, img)).astype(np.float32)*255
+        # if idx == 0:
+        #     print('writing')
+        #     cv2.imwrite('mytest.png', img)
         img = transforms.ToTensor()(img)
-
+        # if idx == 0:
+        #     print('writing')
+        #     img2 = img.permute(1, 2, 0).numpy()
+        #     cv2.imwrite('mytest2.png', img2)
         points = np.array(points, dtype=np.float32)
         tenp = 10
         minxy = np.array([np.min(points[:,0])-tenp, np.min(points[:,1])-tenp])
@@ -193,7 +199,7 @@ class PhantomObjLoad(BasicLoader):
         targets /= self.img_size
 
         targets = torch.from_numpy(targets)
-        return 'phantom', img, targets
+        return 'phantomobj_{}.png'.format(idx), img, targets
 
 class BoxEdit(object):
     """docstring for BoxEdit."""

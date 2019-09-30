@@ -214,7 +214,6 @@ def get_multiland_statistics(outputs, targets, lands=1, expected=1):
         pred_lands = outputs[sample_i][:, 5:5+tlands].contiguous().view(-1, 2)
         targ_lands = targets[targets[:, 0] == sample_i][:, -tlands:].view(-1, 2)
         if len(targ_lands) == len(pred_lands):
-            # import pdb; pdb.set_trace()
             for pred_i, pland in enumerate(pred_lands):
                 dist = torch.dist(pland, targ_lands[pred_i], 2)
                 land_dists[sample_i, pred_i] = dist.numpy()

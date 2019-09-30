@@ -5,6 +5,7 @@ from utils.utils import *
 from utils.post_process import *
 from utils.datasets import *
 from utils.parse_config import *
+from utils.drawers import *
 
 import os
 import sys
@@ -46,6 +47,7 @@ def evaluate(model, config, verbose=False):
 
     labels = []
     sample_metrics = []  # List of tuples (TP, confs, pred)
+    lands = 0 if 'landmarks' not in config else config['data_config']['landmarks']
     land_metrics = None
     landm_set = ['landmark', 'part2', 'phantom']
     landsm_set = ['multilands', 'phantomobj', 'twoobj']
@@ -83,18 +85,23 @@ def evaluate(model, config, verbose=False):
             if model.type == 'twoobj':
                 targets[:, -2:] *= img_size
             pdists = get_land_statistics(outputs, targets, expected=expected)
-            land_metrics += list(pdists)
+            land_metrics += pdists.tolist()
+            if batch_i < 1:
+                print(pdists)
 
             loop.set_description( 'avg_dist:{:.3f}'.format(np.mean(land_metrics)) )
         elif model.type in landsm_set:
-            lands = config['data_config']['landmarks']
             targets[:, -(lands*2):] *= img_size
             pdists = get_multiland_statistics(outputs, targets, lands=lands, expected=expected)
             land_metrics += pdists.tolist()
+            if batch_i < 1:
+                print(pdists)
 
             loop.set_description( 'avg_dist:{:.3f}'.format(np.mean(land_metrics)) )
         else:
             loop.set_description( 'detecting' )
+        if batch_i < 1:
+            draw_predictions(imgps, imgs, outputs, targets, lands=lands)
         loop.update(1)
     loop.close()
 

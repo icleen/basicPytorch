@@ -46,7 +46,7 @@ class PhantomSet(Dataset):
         return self.length
 
     def __getitem__(self, idx):
-        return self.loader.load()
+        return self.loader.load(idx)
 
     def collate_fn(self, batch):
         paths, imgs, targets = list(zip(*batch))
