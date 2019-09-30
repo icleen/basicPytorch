@@ -146,7 +146,7 @@ def create_modules(module_defs, config):
             anchors = [anchors[i] for i in anchor_idxs]
             num_classes = int(module_def['classes'])
             img_size = config['img_size']
-            lands = 0 if 'lands' not in module_def else int(module_def['lands'])
+            lands = 0 if 'lands' not in module_def else int(module_def['lands'])*2
             # Define detection layer
             if 'ftype' in module_def:
                 yolo_layer = YOLOLayer(anchors, num_classes, img_size, lands=lands, type=module_def['ftype'])
@@ -301,11 +301,13 @@ class YOLOLayer(nn.Module):
         self.lands = lands
         self.type = type
 
-        self.myforward = self.twoobj_forward
+        self.myforward = self.multiland_forward
         if self.type == 'normal':
             self.myforward = self.normal_forward
-        elif self.type == 'landmarks':
-            self.myforward = self.multiland_forward
+        # elif self.type == 'landmarks':
+        #     self.myforward = self.multiland_forward
+        # elif self.type == 'phantomobj':
+        #     self.myforward = self.multiland_forward
 
     def compute_grid_offsets(self, grid_size, cuda=True):
         self.grid_size = grid_size

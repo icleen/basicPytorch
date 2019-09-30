@@ -65,7 +65,7 @@ if __name__ == "__main__":
             model.load_darknet_weights(config['pretrained_weights'])
 
     # Get dataloader
-    if config['type'] == 'phantom':
+    if 'phantom' in config['type']:
         dataset = PhantomSet( config, train=True, augment=True )
     else:
         dataset = FolderDataset( config, train=True, augment=True )
@@ -172,13 +172,13 @@ if __name__ == "__main__":
                 print('\tavg_dist:', avg_dist)
                 print('\tmax_dist:', np.max(landm))
 
-                if bsf > avg_dist:
+                if epoch == 0 or avg_dist < bsf:
                     torch.save(model.state_dict(),
                         config['checkpoint_path'].format('best')
                     )
                     bsf = avg_dist
             else:
-                if bsf < APmean:
+                if epoch == 0 or APmean > bsf:
                     torch.save(model.state_dict(),
                         config['checkpoint_path'].format('best')
                     )

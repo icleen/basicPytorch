@@ -4,16 +4,16 @@
 
   "batch_size": 4,
   "vbatch_size": 10,
-  "model_def": "configs/phantomobj/model.cfg",
+  "model_def": "configs/phantom/model.cfg",
 
   "data_config": {
     "type": "csv",
     "classes": 2,
     "widths": 0.1,
     "landmarks": 4,
-    "expected_objects": 4,
+    "expected_objects": 1,
     "iters": 4000,
-    "names": "configs/phantomobj/classes.names"
+    "names": "configs/phantom/classes.names"
   },
 
   "pretrained_weights": "weights/darknet53.conv.74",

@@ -148,7 +148,6 @@ class PhantomLoad(BasicLoader):
 
     def __init__(self, config):
         super(PhantomLoad, self).__init__()
-        # self.config = config
         self.img_size = config['img_size']
         self.widths = config['data_config']['widths']
         from utils.phantom import phantom
@@ -163,11 +162,38 @@ class PhantomLoad(BasicLoader):
         points = np.pad(points, ((0,0),(0,2)), 'constant', constant_values=self.widths)
         points[:,1] += [i for i in range(len(points))]
         points = torch.from_numpy(points)
-        # targets = torch.zeros((points.shape[0], points.shape[1]))
-        # targets += points
-        # return 'phantom', img, targets
         return 'phantom', img, points
 
+class PhantomObjLoad(BasicLoader):
+    """docstring for PhantomObjLoad."""
+
+    def __init__(self, config):
+        super(PhantomObjLoad, self).__init__()
+        self.img_size = config['img_size']
+        self.widths = config['data_config']['widths']
+        from utils.phantom import phantom
+        self.imgsource = phantom
+
+    def load(self):
+        img, points = self.imgsource(self.img_size)
+        img = np.dstack((img, img, img)).astype(np.float32)*255
+        img = transforms.ToTensor()(img)
+
+        points = np.array(points, dtype=np.float32)
+        tenp = 10
+        minxy = np.array([np.min(points[:,0])-tenp, np.min(points[:,1])-tenp])
+        maxxy = np.array([np.max(points[:,0])+tenp, np.max(points[:,1])+tenp])
+        wh = maxxy - minxy
+        cenxy = (maxxy + minxy) / 2
+        targets = np.zeros((1, 6+(points.shape[0]*2)), dtype=np.float32)
+        targets[0,1] += [i for i in range(len(targets))]
+        targets[0,2:4] = cenxy
+        targets[0,4:6] = wh
+        targets[0,6:] = points.flatten()
+        targets /= self.img_size
+
+        targets = torch.from_numpy(targets)
+        return 'phantom', img, targets
 
 class BoxEdit(object):
     """docstring for BoxEdit."""

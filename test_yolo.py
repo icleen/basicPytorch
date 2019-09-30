@@ -26,7 +26,7 @@ def evaluate(model, config, verbose=False):
     model.eval()
 
     # Get dataloader
-    if config['type'] == 'phantom':
+    if 'phantom' in config['type']:
         dataset = PhantomSet( config, train=False, augment=False )
     else:
         dataset = FolderDataset( config, train=False, augment=False )
@@ -47,8 +47,9 @@ def evaluate(model, config, verbose=False):
     labels = []
     sample_metrics = []  # List of tuples (TP, confs, pred)
     land_metrics = None
-    landm_set = ['twoobj', 'landmark', 'part2', 'phantom']
-    if model.type in landm_set or model.type == 'multilands':
+    landm_set = ['landmark', 'part2', 'phantom']
+    landsm_set = ['multilands', 'phantomobj', 'twoobj']
+    if model.type in landm_set or model.type in landsm_set:
         land_metrics = []  # List of np arrs (landmark dists)
     loop = tqdm.tqdm(total=len(dataloader), position=0)
     for batch_i, (imgps, imgs, targets) in enumerate(dataloader):
@@ -57,15 +58,15 @@ def evaluate(model, config, verbose=False):
 
         with torch.no_grad():
             outputs = model(imgs)
-            if model.type == 'twoobj':
-                outputs = non_max_suppression_twoobj(outputs,
-                    conf_thres=conf_thres, nms_thres=nms_thres)
-                outputs = post_process_expected(outputs, expected=expected)
-            elif model.type in ['multilands', 'phantomobj']:
+            if model.type in landsm_set:
                 outputs = non_max_suppression_multilands(outputs,
                     conf_thres=conf_thres, nms_thres=nms_thres,
                     landmarks=config['data_config']['landmarks'])
-                outputs = post_process_expected(outputs, expected=1)
+                outputs = post_process_expected(outputs, expected=expected)
+            elif model.type == 'twoobj':
+                outputs = non_max_suppression_multilands(outputs,
+                    conf_thres=conf_thres, nms_thres=nms_thres)
+                outputs = post_process_expected(outputs, expected=expected)
             else:
                 outputs = non_max_suppression(outputs,
                     conf_thres=conf_thres, nms_thres=nms_thres)
@@ -85,11 +86,11 @@ def evaluate(model, config, verbose=False):
             land_metrics += list(pdists)
 
             loop.set_description( 'avg_dist:{:.3f}'.format(np.mean(land_metrics)) )
-        elif model.type == 'multilands':
+        elif model.type in landsm_set:
             lands = config['data_config']['landmarks']
-            targets[:, -lands:] *= img_size
+            targets[:, -(lands*2):] *= img_size
             pdists = get_multiland_statistics(outputs, targets, lands)
-            land_metrics += list(pdists)
+            land_metrics += pdists.tolist()
 
             loop.set_description( 'avg_dist:{:.3f}'.format(np.mean(land_metrics)) )
         else:

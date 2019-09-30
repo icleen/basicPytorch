@@ -148,14 +148,39 @@ def _random_shepp_logan():
 
 def main():
     psize = 416 if len(sys.argv) < 2 else int(sys.argv[1])
-
+    tenp = 10 if psize >= 100 else (0.1 * psize)
     os.makedirs('phantoms', exist_ok=True)
     for i in range(10):
         img, points = phantom(psize)
         for point in points:
             img = cv2.circle(img, (int(point[0]), int(point[1])), 5, 0.5, -1)
         cv2.imwrite('phantoms/phantom_{}.png'.format(i), img*255)
-        import pdb; pdb.set_trace()
+
+        # arpts = np.array(points)
+        # minxy = (np.min(arpts[:,0])-tenp, np.min(arpts[:,1])-tenp)
+        # maxxy = (np.max(arpts[:,0])+tenp, np.max(arpts[:,1])+tenp)
+        # minxy = (int(minxy[0]+0.5), int(minxy[1]+0.5))
+        # maxxy = (int(maxxy[0]+0.5), int(maxxy[1]+0.5))
+        # img = cv2.rectangle(img, minxy, maxxy, 0.5, 1)
+        # cv2.imwrite('phantoms/phantom_t{}.png'.format(i), img*255)
+
+        points = np.array(points, dtype=np.float32)
+        tenp = 10
+        minxy = np.array([np.min(points[:,0])-tenp, np.min(points[:,1])-tenp])
+        maxxy = np.array([np.max(points[:,0])+tenp, np.max(points[:,1])+tenp])
+        wh = maxxy - minxy
+        cenxy = (maxxy + minxy) / 2
+        targets = np.zeros((1, 6+(points.shape[0]*2)), dtype=np.float32)
+        targets[0,1] += [i for i in range(len(targets))]
+        targets[0,2:4] = cenxy
+        targets[0,4:6] = wh
+        targets[0,6:] = points.flatten()
+        # targets /= self.img_size
+
+        minxy = (int(targets[0,2]-(targets[0,4]/2)), int(targets[0,3]-(targets[0,5]/2)))
+        maxxy = (int(targets[0,2]+(targets[0,4]/2)), int(targets[0,3]+(targets[0,5]/2)))
+        img = cv2.rectangle(img, minxy, maxxy, 0.5, 1)
+        cv2.imwrite('phantoms/phantom_t{}.png'.format(i), img*255)
 
     # test()
 

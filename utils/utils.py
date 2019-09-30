@@ -202,14 +202,17 @@ def get_land_statistics(outputs, targets, expected=2):
     return np.mean(land_dists, axis=1)
 
 
-def get_multiland_statistics(outputs, targets, lands=2):
-    land_dists = np.zeros((len(outputs), lands//2))
+def get_multiland_statistics(outputs, targets, lands=1):
+    land_dists = np.zeros((len(outputs), lands))
+    tlands = lands * 2
     for sample_i in range(len(outputs)):
         if outputs[sample_i] is None:
+            land_dists[sample_i] += 10.1
             continue
 
-        pred_lands = outputs[sample_i][:, 5:5+lands].contiguous().view(-1, lands//2)
-        targ_lands = targets[targets[:, 0] == sample_i][:, -lands:].view(-1, lands//2)
+        # 2 represents the x, y that makes up a landmark
+        pred_lands = outputs[sample_i][:, 5:5+tlands].contiguous().view(-1, 2)
+        targ_lands = targets[targets[:, 0] == sample_i][:, -tlands:].view(-1, 2)
         if len(targ_lands) == len(pred_lands):
             for pred_i, pland in enumerate(pred_lands):
                 dist = torch.dist(pland, targ_lands[pred_i], 2)
@@ -217,7 +220,6 @@ def get_multiland_statistics(outputs, targets, lands=2):
         else:
             print('not equal')
             import pdb; pdb.set_trace()
-
     return np.mean(land_dists, axis=1)
 
 

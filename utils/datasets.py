@@ -30,6 +30,8 @@ class PhantomSet(Dataset):
         if not train:
             self.length = self.length // 10
         self.loader = PhantomLoad(config)
+        if 'obj' in config['type']:
+            self.loader = PhantomObjLoad(config)
 
         self.img_size = config['img_size'] if 'img_size' in config else 416
         self.max_objects = 100

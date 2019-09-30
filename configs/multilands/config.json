@@ -9,8 +9,8 @@
   "data_config": {
     "type": "csv",
     "classes": 2,
-    "landmarks": 4,
-    "expected_objects": 4,
+    "landmarks": 2,
+    "expected_objects": 1,
     "train": "/scratch/hip_data/alt/train/",
     "valid": "/scratch/hip_data/alt/valid/",
     "names": "configs/twoobj/classes.names"
