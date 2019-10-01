@@ -13,6 +13,7 @@
     "landmarks": 4,
     "expected_objects": 1,
     "iters": 4000,
+    "valid": "/scratch/phantom_data/labels/",
     "names": "configs/phantom/classes.names"
   },
 

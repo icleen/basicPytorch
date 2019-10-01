@@ -143,18 +143,19 @@ class HipLoader(BasicLoader):
         return img, targets
 
 
-class PhantomLoad(BasicLoader):
-    """docstring for PhantomLoad."""
+class PhantomLoader(BasicLoader):
+    """docstring for PhantomLoader."""
 
     def __init__(self, config):
-        super(PhantomLoad, self).__init__()
+        super(PhantomLoader, self).__init__()
         self.img_size = config['img_size']
         self.widths = config['data_config']['widths']
+        self.numpts = config['data_config']['landmarks']*config['data_config']['expected_objects']
         from utils.phantom import phantom
         self.imgsource = phantom
 
     def load(self, idx):
-        img, points = self.imgsource(self.img_size)
+        img, points = self.imgsource(self.img_size, numpts=self.numpts)
         img = np.dstack((img, img, img)).astype(np.float32)*255
         img = transforms.ToTensor()(img)
         points = np.array(points, dtype=np.float32) / self.img_size
@@ -164,27 +165,64 @@ class PhantomLoad(BasicLoader):
         points = torch.from_numpy(points)
         return 'phantom_{}.png'.format(idx), img, points
 
-class PhantomObjLoad(BasicLoader):
-    """docstring for PhantomObjLoad."""
+class PhantomFileLoader(BasicLoader):
+    """docstring for PhantomFileLoader."""
 
     def __init__(self, config):
-        super(PhantomObjLoad, self).__init__()
+        super(PhantomFileLoader, self).__init__()
         self.img_size = config['img_size']
         self.widths = config['data_config']['widths']
+        self.numpts = config['data_config']['landmarks'] * config['data_config']['expected_objects']
+        self.indeplands = config['type'] != 'phantomobj'
+        from utils.phantom import phantom
+        self.imgsource = phantom
+
+    def load(self, filename, augment=False):
+        with open(filename, 'r') as f:
+            lines = [line.strip() for line in f]
+        points = np.array([
+          float(info) for info in lines[0].split(',')], dtype=np.float32)
+        points = points.reshape(-1, 2)
+        if self.indeplands:
+            points = np.pad(points, ((0,0),(2,0)), 'constant', constant_values=0)
+            points = np.pad(points, ((0,0),(0,2)), 'constant', constant_values=self.widths)
+            points[:,1] += [i for i in range(len(points))]
+            points = torch.from_numpy(points)
+        else:
+            tenp = 0.024
+            minxy = np.array([np.min(points[:,0])-tenp, np.min(points[:,1])-tenp])
+            maxxy = np.array([np.max(points[:,0])+tenp, np.max(points[:,1])+tenp])
+            wh = maxxy - minxy
+            cenxy = (maxxy + minxy) / 2
+            targets = np.zeros((1, 6+(points.shape[0]*2)), dtype=np.float32)
+            targets[0,1] += [i for i in range(len(targets))]
+            targets[0,2:4] = cenxy
+            targets[0,4:6] = wh
+            targets[0,6:] = points.flatten()
+            points = torch.from_numpy(targets)
+
+        img_path = filename.replace('labels', 'images').replace('txt', 'png')
+        img = cv2.imread(img_path, 1)
+        img = img.astype(np.float32)
+        img = transforms.ToTensor()(img)
+
+        return img_path, img, points
+
+class PhantomObjLoader(BasicLoader):
+    """docstring for PhantomObjLoader."""
+
+    def __init__(self, config):
+        super(PhantomObjLoader, self).__init__()
+        self.img_size = config['img_size']
+        self.widths = config['data_config']['widths']
+        self.numpts = config['data_config']['landmarks']*config['data_config']['expected_objects']
         from utils.phantom import phantom
         self.imgsource = phantom
 
     def load(self, idx):
-        img, points = self.imgsource(self.img_size)
+        img, points = self.imgsource(self.img_size, numpts=self.numpts)
         img = np.dstack((img, img, img)).astype(np.float32)*255
-        # if idx == 0:
-        #     print('writing')
-        #     cv2.imwrite('mytest.png', img)
         img = transforms.ToTensor()(img)
-        # if idx == 0:
-        #     print('writing')
-        #     img2 = img.permute(1, 2, 0).numpy()
-        #     cv2.imwrite('mytest2.png', img2)
         points = np.array(points, dtype=np.float32)
         tenp = 10
         minxy = np.array([np.min(points[:,0])-tenp, np.min(points[:,1])-tenp])

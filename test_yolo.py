@@ -28,7 +28,7 @@ def evaluate(model, config, verbose=False):
     model.eval()
 
     # Get dataloader
-    if 'phantom' in config['type']:
+    if False and 'phantom' in config['type']:
         dataset = PhantomSet( config, train=False, augment=False )
     else:
         dataset = FolderDataset( config, train=False, augment=False )
@@ -116,6 +116,7 @@ def evaluate(model, config, verbose=False):
         land_metrics = np.array(land_metrics).reshape(-1)
         plt.boxplot(land_metrics)
         plt.savefig('output/boxplot.png')
+        plt.clf()
     return precision, recall, AP, f1, ap_class, land_metrics
 
 

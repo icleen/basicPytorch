@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 
 
-def phantom(psize=256,ellipses=None):
+def phantom(psize=256,ellipses=None, numpts=4):
     if ellipses is None:
         ellipses = phantom_ellipses('random')
         # ellipses = phantom_ellipses()
@@ -38,6 +38,15 @@ def phantom(psize=256,ellipses=None):
             point = [0, -axes[1], 1]
             point = np.matmul(M, point) + transxy
             points.append(point)
+
+            if numpts > 4:
+                point = [axes[0], 0, 1]
+                point = np.matmul(M, point) + transxy
+                points.append(point)
+
+                point = [-axes[0], 0, 1]
+                point = np.matmul(M, point) + transxy
+                points.append(point)
 
     M = cv2.getRotationMatrix2D((wh,wh),rot,1)
     img = cv2.warpAffine(img,M,(psize,psize))
@@ -150,54 +159,42 @@ def _random_shepp_logan():
      [0.0, 0.1, 0.9, 1.0]  # beta2
     ])
 
-    # import matplotlib.pyplot as plt
-    # means = np.zeros(2)
-    # cov = np.eye(2)
-    # x, y = np.random.multivariate_normal(means, cov, 5000).T
-    # plt.plot(x, y, 'x')
-    # plt.savefig('phantoms/cov=1.png')
-    # plt.clf()
-    # x, y = np.random.multivariate_normal(means, cov*0.1, 5000).T
-    # plt.plot(x, y, 'x')
-    # plt.savefig('phantoms/cov=0.1.png')
-    # plt.clf()
-    # x, y = np.random.multivariate_normal(means, cov*0.01, 5000).T
-    # plt.plot(x, y, 'x')
-    # plt.savefig('phantoms/cov=0.01.png')
-    # plt.clf()
     rot_cov = np.array([
      [1.0, 0.5], # theta1
      [0.5, 1.0]  # theta2
     ])
 
-    alphabeta = np.concatenate((phntm[2, 1:3], phntm[3, 1:3]))
-    alphabeta += np.random.multivariate_normal(np.zeros((alphabeta.shape)), shape_cov)*0.05
-    phntm[2, 1:3] = np.maximum(alphabeta[:2], 0)
-    phntm[3, 1:3] = np.maximum(alphabeta[2:], 0)
-    pheta = np.concatenate((phntm[2][5:6], phntm[3][5:6]))
-    pheta += np.random.multivariate_normal(np.zeros((pheta.shape)), rot_cov)
-    phntm[2][5] = pheta[0]
-    phntm[3][5] = pheta[1]
+    alphabeta = np.random.multivariate_normal(np.zeros((4,)), shape_cov)*0.05
+    phntm[2, 1:3] += np.maximum(alphabeta[:2], 0)
+    phntm[3, 1:3] += np.maximum(alphabeta[2:], 0)
+    pheta = np.random.multivariate_normal(np.zeros((2,)), rot_cov)*10.0
+    phntm[2][5] += pheta[0]
+    phntm[3][5] += pheta[1]
 
-    # print(phntm[2:4, 1])
-    # print(phtnm[2:4, -2])
     # phntm[2:4, 1] += np.random.normal(0.0, 0.03, 1)
     # phntm[2:4, 2] += np.random.normal(0.0, 0.03, 1)
     # phntm[2:4, -2] += np.random.randint(0, 45, 2)
-    # print(phntm[2:4, 1])
-    # print(phtnm[2:4, -2])
     return phntm
 
 
 def main():
     psize = 416 if len(sys.argv) < 2 else int(sys.argv[1])
     tenp = 10 if psize >= 100 else (0.1 * psize)
-    os.makedirs('phantoms', exist_ok=True)
-    for i in range(10):
-        img, points = phantom(psize)
-        for point in points:
-            img = cv2.circle(img, (int(point[0]), int(point[1])), 5, 0.5, -1)
-        cv2.imwrite('phantoms/phantom_{}.png'.format(i), img*255)
+    os.makedirs('phantom/images', exist_ok=True)
+    os.makedirs('phantom/labels', exist_ok=True)
+    for i in range(400):
+        img, points = phantom(psize, numpts=4)
+        with open('phantom/labels/phantom_{}.txt'.format(i), 'w') as f:
+            for p_i, point in enumerate(points):
+                # img = cv2.circle(img, (int(point[0]), int(point[1])), 5, 0.5, -1)
+                point /= psize
+                f.write(str(point[0]) + ',' + str(point[1]))
+                if p_i < (len(points)-1):
+                    f.write(',')
+            f.write('\n')
+        cv2.imwrite('phantom/images/phantom_{}.png'.format(i), img*255)
+
+
 
         # arpts = np.array(points)
         # minxy = (np.min(arpts[:,0])-tenp, np.min(arpts[:,1])-tenp)

@@ -29,9 +29,9 @@ class PhantomSet(Dataset):
         self.length = config['data_config']['iters']
         if not train:
             self.length = self.length // 10
-        self.loader = PhantomLoad(config)
+        self.loader = PhantomLoader(config)
         if 'obj' in config['type']:
-            self.loader = PhantomObjLoad(config)
+            self.loader = PhantomObjLoader(config)
 
         self.img_size = config['img_size'] if 'img_size' in config else 416
         self.max_objects = 100
@@ -123,7 +123,9 @@ class FolderDataset(Dataset):
         self.data = [osp.join(folder_path, filep) for filep in os.listdir(folder_path)]
 
         self.loader = None
-        if config['task'] == 'yolov3':
+        if 'phantom' in config['type']:
+            self.loader = PhantomFileLoader(config)
+        elif config['task'] == 'yolov3':
             self.loader = HipFileLoader(config)
         elif config['task'] == 'two_part':
             self.loader = HipFileLoader(config)
