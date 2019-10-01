@@ -219,6 +219,8 @@ def get_multiland_statistics(outputs, targets, lands=1, expected=1):
                 land_dists[sample_i, pred_i] = dist.numpy()
         else:
             print('not equal')
+            # land_dists[sample_i] += 10.1
+            # continue
             import pdb; pdb.set_trace()
     return np.mean(land_dists, axis=1)
 

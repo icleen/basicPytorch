@@ -37,6 +37,7 @@ def evaluate(model, config, verbose=False):
     )
 
     expected = 2 if 'expected_objects' not in config['data_config'] else config['data_config']['expected_objects']
+    lands = 0 if 'landmarks' not in config['data_config'] else config['data_config']['landmarks']
 
     conf_thres = config['conf_thres']
     iou_thres = config['iou_thres']
@@ -47,7 +48,6 @@ def evaluate(model, config, verbose=False):
 
     labels = []
     sample_metrics = []  # List of tuples (TP, confs, pred)
-    lands = 0 if 'landmarks' not in config else config['data_config']['landmarks']
     land_metrics = None
     landm_set = ['landmark', 'part2', 'phantom']
     landsm_set = ['multilands', 'phantomobj', 'twoobj']
