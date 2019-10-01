@@ -10,7 +10,7 @@
     "type": "csv",
     "classes": 4,
     "widths": 0.1,
-    "landmarks": 4,
+    "landmarks": 0,
     "expected_objects": 4,
     "iters": 4000,
     "names": "configs/phantom/classes.names"

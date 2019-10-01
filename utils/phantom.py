@@ -21,8 +21,11 @@ def phantom(psize=256,ellipses=None):
         ai = ellip[1]*wh
         bi = ellip[2]*wh
         axes = (int(ai), int(bi))
-        phii = ellip[5]
-        img += cv2.ellipse(np.zeros((psize, psize)), center, axes, phii, 0, 360, I, -1)
+        phii = int(ellip[5])
+        try:
+            img += cv2.ellipse(np.zeros((psize, psize)), center, axes, phii, 0, 360, I, -1)
+        except Exception as e:
+            import pdb; pdb.set_trace()
 
         if i in [2, 3]:
             M = cv2.getRotationMatrix2D((0,0),-phii,1)
@@ -103,7 +106,8 @@ def phantom_ellipses(name='modified'):
 
 
 def _shepp_logan():
-    #  Standard head phantom, taken from Shepp & Logan
+    # Standard head phantom, taken from Shepp & Logan
+    # intensity, alpha, beta, centerx, centery, pheta
     return np.array([
         [   2,   .69,   .92,    0,      0,   0, 0],
         [-.98, .6624, .8740,    0, -.0184,   0, 0],
@@ -118,8 +122,10 @@ def _shepp_logan():
     ])
 
 def _mod_shepp_logan():
-    #  Modified version of Shepp & Logan's head phantom,
-    #  adjusted to improve contrast.  Taken from Toft.
+    # Modified version of Shepp & Logan's head phantom,
+    # adjusted to improve contrast.  Taken from Toft.
+    # intensity, alpha, beta, centerx, centery, pheta, total rotation
+    # 0,         1,     2,    3,       4,       5,     6
     return np.array([
         [   1,   .69,   .92,    0,      0,   0, 0],
         [-.80, .6624, .8740,    0, -.0184,   0, 0],
@@ -136,13 +142,50 @@ def _mod_shepp_logan():
 
 def _random_shepp_logan():
     phntm = _mod_shepp_logan()
-    # phntm += np.random.normal(0.0, 0.01, phntm.shape)
-    phntm[2:,-2] += np.random.normal(0.0, 3, phntm[2:,-1].shape)
-    phntm[:, -2] += np.random.normal(0.0, 5, 1)
-    phntm[:, -1] += np.random.normal(0.0, 90, 1)
-    phntm[:, 3] += np.random.normal(0.0, 0.1, 1)
-    phntm[:, 4] += np.random.normal(0.0, 0.1, 1)
-    # phntm[:, 1:3] += np.random.normal(0.0, 0.01, 2)
+
+    shape_cov = np.array([
+     [1.0, 0.9, 0.1, 0.0], # alpha1
+     [0.9, 1.0, 0.0, 0.1], # alpha2
+     [0.1, 0.0, 1.0, 0.9], # beta1
+     [0.0, 0.1, 0.9, 1.0]  # beta2
+    ])
+
+    # import matplotlib.pyplot as plt
+    # means = np.zeros(2)
+    # cov = np.eye(2)
+    # x, y = np.random.multivariate_normal(means, cov, 5000).T
+    # plt.plot(x, y, 'x')
+    # plt.savefig('phantoms/cov=1.png')
+    # plt.clf()
+    # x, y = np.random.multivariate_normal(means, cov*0.1, 5000).T
+    # plt.plot(x, y, 'x')
+    # plt.savefig('phantoms/cov=0.1.png')
+    # plt.clf()
+    # x, y = np.random.multivariate_normal(means, cov*0.01, 5000).T
+    # plt.plot(x, y, 'x')
+    # plt.savefig('phantoms/cov=0.01.png')
+    # plt.clf()
+    rot_cov = np.array([
+     [1.0, 0.5], # theta1
+     [0.5, 1.0]  # theta2
+    ])
+
+    alphabeta = np.concatenate((phntm[2, 1:3], phntm[3, 1:3]))
+    alphabeta += np.random.multivariate_normal(np.zeros((alphabeta.shape)), shape_cov)*0.05
+    phntm[2, 1:3] = np.maximum(alphabeta[:2], 0)
+    phntm[3, 1:3] = np.maximum(alphabeta[2:], 0)
+    pheta = np.concatenate((phntm[2][5:6], phntm[3][5:6]))
+    pheta += np.random.multivariate_normal(np.zeros((pheta.shape)), rot_cov)
+    phntm[2][5] = pheta[0]
+    phntm[3][5] = pheta[1]
+
+    # print(phntm[2:4, 1])
+    # print(phtnm[2:4, -2])
+    # phntm[2:4, 1] += np.random.normal(0.0, 0.03, 1)
+    # phntm[2:4, 2] += np.random.normal(0.0, 0.03, 1)
+    # phntm[2:4, -2] += np.random.randint(0, 45, 2)
+    # print(phntm[2:4, 1])
+    # print(phtnm[2:4, -2])
     return phntm
 
 
@@ -164,23 +207,23 @@ def main():
         # img = cv2.rectangle(img, minxy, maxxy, 0.5, 1)
         # cv2.imwrite('phantoms/phantom_t{}.png'.format(i), img*255)
 
-        points = np.array(points, dtype=np.float32)
-        tenp = 10
-        minxy = np.array([np.min(points[:,0])-tenp, np.min(points[:,1])-tenp])
-        maxxy = np.array([np.max(points[:,0])+tenp, np.max(points[:,1])+tenp])
-        wh = maxxy - minxy
-        cenxy = (maxxy + minxy) / 2
-        targets = np.zeros((1, 6+(points.shape[0]*2)), dtype=np.float32)
-        targets[0,1] += [i for i in range(len(targets))]
-        targets[0,2:4] = cenxy
-        targets[0,4:6] = wh
-        targets[0,6:] = points.flatten()
-        # targets /= self.img_size
-
-        minxy = (int(targets[0,2]-(targets[0,4]/2)), int(targets[0,3]-(targets[0,5]/2)))
-        maxxy = (int(targets[0,2]+(targets[0,4]/2)), int(targets[0,3]+(targets[0,5]/2)))
-        img = cv2.rectangle(img, minxy, maxxy, 0.5, 1)
-        cv2.imwrite('phantoms/phantom_t{}.png'.format(i), img*255)
+        # points = np.array(points, dtype=np.float32)
+        # tenp = 10
+        # minxy = np.array([np.min(points[:,0])-tenp, np.min(points[:,1])-tenp])
+        # maxxy = np.array([np.max(points[:,0])+tenp, np.max(points[:,1])+tenp])
+        # wh = maxxy - minxy
+        # cenxy = (maxxy + minxy) / 2
+        # targets = np.zeros((1, 6+(points.shape[0]*2)), dtype=np.float32)
+        # targets[0,1] += [i for i in range(len(targets))]
+        # targets[0,2:4] = cenxy
+        # targets[0,4:6] = wh
+        # targets[0,6:] = points.flatten()
+        # # targets /= self.img_size
+        #
+        # minxy = (int(targets[0,2]-(targets[0,4]/2)), int(targets[0,3]-(targets[0,5]/2)))
+        # maxxy = (int(targets[0,2]+(targets[0,4]/2)), int(targets[0,3]+(targets[0,5]/2)))
+        # img = cv2.rectangle(img, minxy, maxxy, 0.5, 1)
+        # cv2.imwrite('phantoms/phantom_t{}.png'.format(i), img*255)
 
     # test()
 

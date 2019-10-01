@@ -14,6 +14,7 @@ import json
 import datetime
 import argparse
 import tqdm
+import matplotlib.pyplot as plt
 
 import torch
 from torch.utils.data import DataLoader
@@ -113,6 +114,8 @@ def evaluate(model, config, verbose=False):
 
     if land_metrics:
         land_metrics = np.array(land_metrics).reshape(-1)
+        plt.boxplot(land_metrics)
+        plt.savefig('output/boxplot.png')
     return precision, recall, AP, f1, ap_class, land_metrics
 
 
