@@ -183,7 +183,7 @@ def main():
     os.makedirs('phantom/images', exist_ok=True)
     os.makedirs('phantom/labels', exist_ok=True)
     for i in range(400):
-        img, points = phantom(psize, numpts=4)
+        img, points = phantom(psize, numpts=8)
         with open('phantom/labels/phantom_{}.txt'.format(i), 'w') as f:
             for p_i, point in enumerate(points):
                 # img = cv2.circle(img, (int(point[0]), int(point[1])), 5, 0.5, -1)
