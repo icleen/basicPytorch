@@ -7,7 +7,7 @@
   "model_def": "configs/phantom/model2.cfg",
 
   "data_config": {
-    "type": "csv",
+    "type": "random",
     "classes": 1,
     "widths": 0.1,
     "landmarks": 8,
@@ -35,7 +35,7 @@
   "nms_thres": 0.5,
 
   "checkpoint_path": "checkpoints/yolov3_phantomobj2_{}.pth",
-  "log_path": "phantomobj2_logs",
-  "val_metrics": "phantomobj2_metrics.txt"
+  "log_path": "logs/phantomobj2_logs",
+  "val_metrics": "logs/phantomobj2_metrics.txt"
 
 }

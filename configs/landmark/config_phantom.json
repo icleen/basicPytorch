@@ -7,10 +7,10 @@
   "model_def": "configs/landmark/model_phantom.cfg",
 
   "data_config": {
-    "type": "csv",
+    "type": "random",
     "classes": 4,
     "widths": 0.1,
-    "landmarks": 0,
+    "landmarks": 1,
     "expected_objects": 4,
     "iters": 4000,
     "valid": "/scratch/phantom_data/labels/",
@@ -34,7 +34,7 @@
   "nms_thres": 0.5,
 
   "checkpoint_path": "checkpoints/yolov3_phantom_{}.pth",
-  "log_path": "phantom_logs",
-  "val_metrics": "phantom_metrics.txt"
+  "log_path": "logs/phantom_logs",
+  "val_metrics": "logs/phantom_metrics.txt"
 
 }

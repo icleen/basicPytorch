@@ -149,16 +149,18 @@ class PhantomLoader(BasicLoader):
     def __init__(self, config):
         super(PhantomLoader, self).__init__()
         self.img_size = config['img_size']
+        self.type = config['data_config']['type']
         self.widths = config['data_config']['widths']
         self.numpts = config['data_config']['landmarks']*config['data_config']['expected_objects']
         from utils.phantom import phantom
         self.imgsource = phantom
 
     def load(self, idx):
-        img, points, _ = self.imgsource(self.img_size, numpts=self.numpts)
+        img, boxes = self.imgsource(self.img_size, numpts=self.numpts, type=self.type)
         img = np.dstack((img, img, img)).astype(np.float32)*255
         img = transforms.ToTensor()(img)
-        points = np.array(points, dtype=np.float32) / self.img_size
+        boxes = np.array(boxes, dtype=np.float32) / self.img_size
+        points = boxes[:,4:].reshape(-1,2)
         points = np.pad(points, ((0,0),(2,0)), 'constant', constant_values=0)
         points = np.pad(points, ((0,0),(0,2)), 'constant', constant_values=self.widths)
         points[:,1] += [i for i in range(len(points))]
@@ -183,7 +185,6 @@ class PhantomFileLoader(BasicLoader):
         boxes = np.array( [ [
           float(info) for info in line.split(',') ]
             for line in lines ], dtype=np.float32)
-
         if self.indeplands:
             points = boxes[:, 5:].reshape(-1, 2)
             points = np.pad(points, ((0,0),(2,0)), 'constant', constant_values=0)
@@ -207,24 +208,20 @@ class PhantomObjLoader(BasicLoader):
     def __init__(self, config):
         super(PhantomObjLoader, self).__init__()
         self.img_size = config['img_size']
+        self.type = config['data_config']['type']
         self.widths = config['data_config']['widths']
         self.numpts = config['data_config']['landmarks']*config['data_config']['expected_objects']
         from utils.phantom import phantom
         self.imgsource = phantom
 
     def load(self, idx):
-        img, points, boxes = self.imgsource(self.img_size, numpts=self.numpts)
+        img, boxes = self.imgsource(self.img_size, numpts=self.numpts, type=self.type)
         img = np.dstack((img, img, img)).astype(np.float32)*255
         img = transforms.ToTensor()(img)
-        points = np.array(points, dtype=np.float32)
-        boxes = np.array(boxes, dtype=np.float32)
-        targets = np.zeros((1, 6+(points.shape[0]*2)), dtype=np.float32)
-        targets[0,1] += [i for i in range(len(targets))]
-        targets[0,2:6] = boxes[0]
-        targets[0,6:] = points.flatten()
-        targets /= self.img_size
-
-        targets = torch.from_numpy(targets)
+        boxes = np.array(boxes, dtype=np.float32)/self.img_size
+        targets = torch.zeros((boxes.shape[0], boxes.shape[1]+2))
+        targets[:, 1] = torch.arange(boxes.shape[0])
+        targets[:, 2:] = torch.from_numpy(boxes)
         return 'phantomobj_{}.png'.format(idx), img, targets
 
 class BoxEdit(object):

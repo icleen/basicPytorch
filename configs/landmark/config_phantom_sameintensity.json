@@ -7,13 +7,13 @@
   "model_def": "configs/landmark/model_phantom2.cfg",
 
   "data_config": {
-    "type": "random",
+    "type": "same_intensity",
     "classes": 8,
     "widths": 0.1,
-    "landmarks": 1,
+    "landmarks": 0,
     "expected_objects": 8,
     "iters": 4000,
-    "valid": "/scratch/phantom_data/labels/",
+    "valid": "/scratch/phantom_sameintensity/labels/",
     "names": "configs/phantom/classes8.names"
   },
 
@@ -33,8 +33,8 @@
   "conf_thres": 0.8,
   "nms_thres": 0.5,
 
-  "checkpoint_path": "checkpoints/yolov3_phantom2_{}.pth",
-  "log_path": "logs/phantom2_logs",
-  "val_metrics": "logs/phantom2_metrics.txt"
+  "checkpoint_path": "checkpoints/yolov3_phantom_sameintensity_{}.pth",
+  "log_path": "logs/phantom_sameintensity_logs",
+  "val_metrics": "logs/phantom_sameintensity_metrics.txt"
 
 }

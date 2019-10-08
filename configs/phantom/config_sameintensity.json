@@ -4,16 +4,16 @@
 
   "batch_size": 4,
   "vbatch_size": 10,
-  "model_def": "configs/phantom/model.cfg",
+  "model_def": "configs/phantom/model2.cfg",
 
   "data_config": {
-    "type": "random",
+    "type": "same_intensity",
     "classes": 1,
     "widths": 0.1,
-    "landmarks": 4,
+    "landmarks": 8,
     "expected_objects": 1,
     "iters": 4000,
-    "valid": "/scratch/phantom_data/labels/",
+    "valid": "/scratch/phantom_sameintensity/labels/",
     "names": "configs/phantom/classes.names"
   },
 
@@ -34,8 +34,8 @@
   "conf_thres": 0.8,
   "nms_thres": 0.5,
 
-  "checkpoint_path": "checkpoints/yolov3_phantomobj_{}.pth",
-  "log_path": "logs/phantomobj_logs",
-  "val_metrics": "logs/phantomobj_metrics.txt"
+  "checkpoint_path": "checkpoints/yolov3_phantomobj_sameintensity_{}.pth",
+  "log_path": "logs/phantomobj_sameintensity_logs",
+  "val_metrics": "logs/phantomobj_sameintensity_metrics.txt"
 
 }
