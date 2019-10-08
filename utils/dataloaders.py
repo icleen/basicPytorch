@@ -151,7 +151,7 @@ class PhantomLoader(BasicLoader):
         self.img_size = config['img_size']
         self.type = config['data_config']['type']
         self.widths = config['data_config']['widths']
-        self.numpts = config['data_config']['landmarks']*config['data_config']['expected_objects']
+        self.numpts = config['data_config']['expected_objects']
         from utils.phantom import phantom
         self.imgsource = phantom
 

@@ -61,7 +61,6 @@ def evaluate(model, config, verbose=False):
 
         with torch.no_grad():
             outputs = model(imgs)
-            import pdb; pdb.set_trace()
             if model.type in landsm_set:
                 outputs = non_max_suppression_multilands(outputs,
                     conf_thres=conf_thres, nms_thres=nms_thres,

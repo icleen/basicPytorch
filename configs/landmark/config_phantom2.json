@@ -10,7 +10,7 @@
     "type": "random",
     "classes": 8,
     "widths": 0.1,
-    "landmarks": 1,
+    "landmarks": 0,
     "expected_objects": 8,
     "iters": 4000,
     "valid": "/scratch/phantom_data/labels/",
