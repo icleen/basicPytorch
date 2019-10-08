@@ -66,10 +66,6 @@ def evaluate(model, config, verbose=False):
                     conf_thres=conf_thres, nms_thres=nms_thres,
                     landmarks=config['data_config']['landmarks'])
                 outputs = post_process_expected(outputs, expected=expected)
-            elif model.type == 'twoobj':
-                outputs = non_max_suppression_multilands(outputs,
-                    conf_thres=conf_thres, nms_thres=nms_thres)
-                outputs = post_process_expected(outputs, expected=expected)
             else:
                 outputs = non_max_suppression(outputs,
                     conf_thres=conf_thres, nms_thres=nms_thres)

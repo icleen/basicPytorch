@@ -8,13 +8,13 @@
 
   "data_config": {
     "type": "csv",
-    "classes": 4,
+    "classes": 8,
     "widths": 0.1,
     "landmarks": 0,
     "expected_objects": 8,
     "iters": 4000,
     "valid": "/scratch/phantom_alt/labels/",
-    "names": "configs/phantom/classes.names"
+    "names": "configs/phantom/classes8.names"
   },
 
   "pretrained_weights": "weights/darknet53.conv.74",
