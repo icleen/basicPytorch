@@ -111,10 +111,10 @@ def evaluate(model, config, verbose=False):
     if land_metrics:
         land_metrics = np.array(land_metrics).reshape(-1)
         plt.boxplot(land_metrics)
-        plt.savefig('output/boxplot_norm.png')
+        plt.savefig(config['val_boxplot'].format('norm'))
         plt.clf()
         plt.boxplot(land_metrics, showfliers=False)
-        plt.savefig('output/boxplot_noliers.png')
+        plt.savefig(config['val_boxplot'].format('noliers'))
         plt.clf()
     return precision, recall, AP, f1, ap_class, land_metrics
 

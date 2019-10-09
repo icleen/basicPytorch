@@ -35,6 +35,7 @@
 
   "checkpoint_path": "checkpoints/yolov3_phantom2_{}.pth",
   "log_path": "logs/phantom2_logs",
-  "val_metrics": "logs/phantom2_metrics.txt"
+  "val_metrics": "logs/phantom2_metrics.txt",
+  "val_boxplot": "logs/phantom2_boxplot_{}.png"
 
 }

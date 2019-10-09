@@ -36,6 +36,7 @@
 
   "checkpoint_path": "checkpoints/yolov3_phantomobj_sameintensity_{}.pth",
   "log_path": "logs/phantomobj_sameintensity_logs",
-  "val_metrics": "logs/phantomobj_sameintensity_metrics.txt"
+  "val_metrics": "logs/phantomobj_sameintensity_metrics.txt",
+  "val_boxplot": "logs/phantomobj_sameintensity_boxplot_{}.png"
 
 }
