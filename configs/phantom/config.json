@@ -37,6 +37,7 @@
   "checkpoint_path": "checkpoints/yolov3_phantomobj_{}.pth",
   "log_path": "logs/phantomobj_logs",
   "val_metrics": "logs/phantomobj_metrics.txt",
-  "val_boxplot": "logs/phantomobj_boxplot_{}.png"
+  "val_boxplot": "logs/phantomobj_boxplot_{}.png",
+  "val_examples": "output/phantomobj"
 
 }

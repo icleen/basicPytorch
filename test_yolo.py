@@ -91,14 +91,14 @@ def evaluate(model, config, verbose=False):
             targets[:, -(lands*2):] *= img_size
             pdists = get_multiland_statistics(outputs, targets, lands=lands, expected=expected)
             land_metrics += pdists.tolist()
-            if batch_i < 1:
-                print(pdists)
+            # if batch_i < 1:
+            #     print(pdists)
 
             loop.set_description( 'avg_dist:{:.3f}'.format(np.mean(land_metrics)) )
         else:
             loop.set_description( 'detecting' )
         if batch_i < 1:
-            draw_predictions(imgps, imgs, outputs, targets, lands=lands)
+            draw_predictions(imgps, imgs, outputs, targets, config, lands=lands)
         loop.update(1)
     loop.close()
 
