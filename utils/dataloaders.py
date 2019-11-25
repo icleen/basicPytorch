@@ -1,6 +1,7 @@
 import glob
 import random
 import os
+import os.path as osp
 import sys
 import csv
 import cv2
@@ -361,28 +362,32 @@ class DotsFileLoader(BasicLoader):
 
     def __init__(self, config):
         super(DotsFileLoader, self).__init__()
-        self.img_size = config['img_size']
-        self.widths = config['data_config']['widths']
+        self.root = config['data_config']['root']
+        self.center = config['img_size']/2
         self.numpts = config['data_config']['landmarks'] * config['data_config']['expected_objects']
         self.indeplands = config['type'] != 'dotsobj'
-        from utils.phantom import phantom
-        self.imgsource = phantom
+        if self.indeplands:
+            self.classes = True
+            self.widths = config['data_config']['widths']
 
     def load(self, filename, augment=False):
-        with open(filename, 'r') as f:
+        with open(ops.join(self.root, filename), 'r') as f:
             lines = [line.strip() for line in f][1:]
         boxes = np.array( [ [
           float(info) for info in line.split(',') ]
             for line in lines ], dtype=np.float32)
         if self.indeplands:
-            points = boxes[:, 5:].reshape(-1, 2)
-            points = np.pad(points, ((0,0),(2,0)), 'constant', constant_values=0)
+            points = np.pad(boxes, ((0,0),(2,0)), 'constant', constant_values=0)
             points = np.pad(points, ((0,0),(0,2)), 'constant', constant_values=self.widths)
-            points[:,1] += [i for i in range(len(points))]
+            if self.classes:
+                points[:,1] += [i for i in range(len(points))]
             targets = torch.from_numpy(points)
         else:
-            targets = torch.zeros((boxes.shape[0], boxes.shape[1]+1))
-            targets[:, 1:] = torch.from_numpy(boxes)
+            points = boxes.reshape(-1)
+            points = np.pad(boxes, ((0,0), (6,0)), 'constant', constant_values=0)
+            points[:, 2:4] += self.center
+            points[:, 4:6] += 1
+            targets = torch.from_numpy(points)
 
         img_path = filename.replace('points', 'images').replace('pts', 'png')
         img = cv2.imread(img_path, 1)
