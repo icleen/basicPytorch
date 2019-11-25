@@ -364,11 +364,11 @@ class DotsFileLoader(BasicLoader):
         super(DotsFileLoader, self).__init__()
         self.root = config['data_config']['root']
         self.center = config['img_size']/2
+        self.widths = config['data_config']['widths']
         self.numpts = config['data_config']['landmarks'] * config['data_config']['expected_objects']
         self.indeplands = config['type'] != 'dotsobj'
         if self.indeplands:
             self.classes = True
-            self.widths = config['data_config']['widths']
 
     def load(self, filename, augment=False):
         with open(osp.join(self.root, filename), 'r') as f:
@@ -385,7 +385,7 @@ class DotsFileLoader(BasicLoader):
         else:
             points = np.pad(boxes.reshape(-1), (6,0), 'constant', constant_values=0)
             points[2:4] += self.center
-            points[4:6] += 1
+            points[4:6] += self.widths
             targets = torch.from_numpy(points).unsqueeze(0)
 
         img_path = osp.join(self.root, filename).replace('points', 'images').replace('pts', 'png')

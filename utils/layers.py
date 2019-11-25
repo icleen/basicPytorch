@@ -435,7 +435,6 @@ class YOLOLayer(nn.Module):
     def multiland_forward(self, x, targets, img_dim):
         # Tensors for cuda support
         FloatTensor = torch.cuda.FloatTensor if x.is_cuda else torch.FloatTensor
-
         self.img_dim = img_dim
         num_samples = x.size(0)
         grid_size = x.size(2)
