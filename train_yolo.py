@@ -23,30 +23,9 @@ from torchvision import transforms
 from torch.autograd import Variable
 import torch.optim as optim
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", type=str,
-        default="configs/twoobj/config.json", help="path to config file")
-    parser.add_argument("-v", "--verbose", default=False,
-        help="if print all info")
-    parser.add_argument("--continu", type=str, default=None,
-        help="if continuing training from checkpoint model")
-    opt = parser.parse_args()
-    # print(opt)
-
-    config = json.load(open(opt.config))
-    # print(config)
+def train(opt, config, logger, device):
 
     landm_set = ['twoobj', 'landmark', 'part2', 'phantom']
-
-    config['log_path'] = config['log_path']
-    os.makedirs(config['log_path'], exist_ok=True)
-    os.makedirs('output', exist_ok=True)
-    os.makedirs('/'.join(config['checkpoint_path'].split('/')[:-1]), exist_ok=True)
-
-    logger = Logger(config['log_path'])
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     class_names = load_classes(
         config['data_config']['names'] )
@@ -174,15 +153,38 @@ if __name__ == "__main__":
 
                 if epoch == 0 or avg_dist < bsf:
                     torch.save(model.state_dict(),
-                        config['checkpoint_path'].format('best')
+                      config['checkpoint_path'].format('best')
                     )
                     bsf = avg_dist
             else:
                 if epoch == 0 or APmean > bsf:
                     torch.save(model.state_dict(),
-                        config['checkpoint_path'].format('best')
+                      config['checkpoint_path'].format('best')
                     )
                     bsf = APmean
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--config", type=str,
+        default="configs/twoobj/config.json", help="path to config file")
+    parser.add_argument("-v", "--verbose", default=False,
+        help="if print all info")
+    parser.add_argument("--continu", type=str, default=None,
+        help="if continuing training from checkpoint model")
+    opt = parser.parse_args()
+
+    config = json.load(open(opt.config))
+
+    config['log_path'] = config['log_path']
+    os.makedirs(config['log_path'], exist_ok=True)
+    os.makedirs('output', exist_ok=True)
+    os.makedirs('/'.join(config['checkpoint_path'].split('/')[:-1]), exist_ok=True)
+
+    logger = Logger(config['log_path'])
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    train(opt, config, logger, device)
 
 
 

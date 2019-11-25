@@ -1,0 +1,46 @@
+{
+  "task": "yolov3",
+  "type": "dots",
+
+  "batch_size": 4,
+  "vbatch_size": 10,
+  "model_def": "configs/dots/model.cfg",
+
+  "data_config": {
+    "type": "random",
+    "classes": 1,
+    "widths": 1.0,
+    "landmarks": 170,
+    "expected_objects": 1,
+    "iters": 4000,
+    "root": "/home/sci/iclee/data/dots-data/points/",
+    "train": "/home/sci/iclee/data/dots-data/train_index.txt",
+    "valid": "/home/sci/iclee/data/dots-data/val_index.txt",
+    "test": "/home/sci/iclee/data/dots-data/test_index.txt",
+    "names": "configs/dots/classes.names"
+  },
+
+  "pretrained_weights": "weights/darknet53.conv.74",
+
+  "learning_rate": 0.0001,
+  "n_cpu": 8,
+  "input_dim": 3,
+  "img_size": 416,
+  "checkpoint_interval": 1,
+  "evaluation_interval": 1,
+  "compute_map": false,
+  "multiscale_training": true,
+  "gradient_accumulations": 2,
+  "epochs": 20,
+
+  "iou_thres": 0.5,
+  "conf_thres": 0.8,
+  "nms_thres": 0.5,
+
+  "checkpoint_path": "checkpoints/yolov3_dots_{}.pth",
+  "log_path": "logs/dots_logs",
+  "val_metrics": "logs/dots_logs/dots_metrics.txt",
+  "val_boxplot": "output/dots/dots_boxplot_{}.png",
+  "val_examples": "output/dots"
+
+}

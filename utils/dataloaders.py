@@ -79,9 +79,9 @@ class LandmarkLoader(BasicLoader):
         super(LandmarkLoader, self).__init__()
         self.img_size = (img_size, img_size)
 
-    def load(self, img, label, augment=False):
+    def load(self, imgp, label, augment=False):
         #  Image
-        img = cv2.imread(img, 1)
+        img = cv2.imread(imgp, 1)
         img = cv2.resize(img, self.img_size, interpolation=cv2.INTER_CUBIC)
         #  Label
         label = np.array(label, dtype=np.float64).reshape((-1, 3))[:,1:].reshape(-1)
@@ -113,9 +113,9 @@ class HipLoader(BasicLoader):
     def __init__(self):
         super(HipLoader, self).__init__()
 
-    def load(self, img, label, augment=False):
+    def load(self, imgp, label, augment=False):
         #  Image
-        img = cv2.imread(img, 1)
+        img = cv2.imread(imgp, 1)
         #  Label
         boxes = None
         if len(label)%5==0:
@@ -354,3 +354,39 @@ class RegressFileLoader(BasicLoader):
             boxes = torch.from_numpy(boxes)
 
         return img_path, img, boxes[0]
+
+
+class DotsFileLoader(BasicLoader):
+    """docstring for DotsFileLoader."""
+
+    def __init__(self, config):
+        super(DotsFileLoader, self).__init__()
+        self.img_size = config['img_size']
+        self.widths = config['data_config']['widths']
+        self.numpts = config['data_config']['landmarks'] * config['data_config']['expected_objects']
+        self.indeplands = config['type'] != 'dotsobj'
+        from utils.phantom import phantom
+        self.imgsource = phantom
+
+    def load(self, filename, augment=False):
+        with open(filename, 'r') as f:
+            lines = [line.strip() for line in f][1:]
+        boxes = np.array( [ [
+          float(info) for info in line.split(',') ]
+            for line in lines ], dtype=np.float32)
+        if self.indeplands:
+            points = boxes[:, 5:].reshape(-1, 2)
+            points = np.pad(points, ((0,0),(2,0)), 'constant', constant_values=0)
+            points = np.pad(points, ((0,0),(0,2)), 'constant', constant_values=self.widths)
+            points[:,1] += [i for i in range(len(points))]
+            targets = torch.from_numpy(points)
+        else:
+            targets = torch.zeros((boxes.shape[0], boxes.shape[1]+1))
+            targets[:, 1:] = torch.from_numpy(boxes)
+
+        img_path = filename.replace('points', 'images').replace('pts', 'png')
+        img = cv2.imread(img_path, 1)
+        img = img.astype(np.float32)
+        img = transforms.ToTensor()(img)
+
+        return img_path, img, targets

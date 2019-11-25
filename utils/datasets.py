@@ -176,6 +176,52 @@ class FolderDataset(Dataset):
         return paths, imgs, targets
 
 
+class IndexDataset(Dataset):
+    def __init__(self, config, set='train', augment=False):
+        index_path = config['data_config'][set]
+        with open(index_path, 'r') as f:
+            self.lines = [line.strip() for line in f]
+
+        self.loader = DotLoader(config['data_config']['root'])
+
+        self.img_size = config['img_size'] if 'img_size' in config else 416
+        self.max_objects = 100
+        self.augment = augment
+        self.multiscale = config['multiscale_training'] if 'multiscale_training' in config else False
+        self.multiscale = self.multiscale & train
+        self.min_size = self.img_size - 3 * 32
+        self.max_size = self.img_size + 3 * 32
+        self.batch_count = 0
+
+    def __len__(self):
+        return len(self.lines)
+
+    def __getitem__(self, index):
+        line = self.lines[index % len(self.lines)]
+        img_path = line[0].rstrip()
+        label = line[1:]
+        img, targets = self.loader.load(img_path, label, self.augment)
+        return img_path, img, targets
+
+    def collate_fn(self, batch):
+        paths, imgs, targets = list(zip(*batch))
+        # Remove empty placeholder targets
+        targets = [boxes for boxes in targets if boxes is not None]
+        # Add sample index to targets
+        for i, boxes in enumerate(targets):
+            boxes[:, 0] = i
+        targets = torch.cat(targets, 0)
+        # Selects new image size every tenth batch
+        if self.multiscale and self.batch_count % 10 == 0:
+            self.img_size = random.choice(
+                range(self.min_size, self.max_size + 1, 32) )
+        # Resize images to input shape
+        imgs = torch.stack([resize(img, self.img_size) for img in imgs])
+        # imgs = torch.stack([img for img in imgs])
+        self.batch_count += 1
+        return paths, imgs, targets
+
+
 class CSVDataset(Dataset):
     def __init__(self, config, train=True, augment=False):
         tvp = 'train' if train else 'valid'
