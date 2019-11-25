@@ -46,8 +46,12 @@ def train(opt, config, logger, device):
     # Get dataloader
     if 'phantom' in config['type']:
         dataset = PhantomSet( config, train=True, augment=True )
+    elif 'dots' in config['type']:
+        dataset = IndexDataset( config, set='train', augment=True )
     else:
         dataset = FolderDataset( config, train=True, augment=True )
+    temp = dataset[0]
+    print(temp[-1].shape)
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=config['batch_size'],

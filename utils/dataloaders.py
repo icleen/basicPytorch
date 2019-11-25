@@ -371,7 +371,7 @@ class DotsFileLoader(BasicLoader):
             self.widths = config['data_config']['widths']
 
     def load(self, filename, augment=False):
-        with open(ops.join(self.root, filename), 'r') as f:
+        with open(osp.join(self.root, filename), 'r') as f:
             lines = [line.strip() for line in f][1:]
         boxes = np.array( [ [
           float(info) for info in line.split(',') ]
@@ -383,15 +383,13 @@ class DotsFileLoader(BasicLoader):
                 points[:,1] += [i for i in range(len(points))]
             targets = torch.from_numpy(points)
         else:
-            points = boxes.reshape(-1)
-            points = np.pad(boxes, ((0,0), (6,0)), 'constant', constant_values=0)
-            points[:, 2:4] += self.center
-            points[:, 4:6] += 1
-            targets = torch.from_numpy(points)
+            points = np.pad(boxes.reshape(-1), (6,0), 'constant', constant_values=0)
+            points[2:4] += self.center
+            points[4:6] += 1
+            targets = torch.from_numpy(points).unsqueeze(0)
 
-        img_path = filename.replace('points', 'images').replace('pts', 'png')
+        img_path = osp.join(self.root, filename).replace('points', 'images').replace('pts', 'png')
         img = cv2.imread(img_path, 1)
         img = img.astype(np.float32)
         img = transforms.ToTensor()(img)
-
         return img_path, img, targets

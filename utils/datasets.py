@@ -182,13 +182,13 @@ class IndexDataset(Dataset):
         with open(index_path, 'r') as f:
             self.lines = [line.strip() for line in f]
 
-        self.loader = DotLoader(config['data_config']['root'])
+        self.loader = DotsFileLoader(config)
 
         self.img_size = config['img_size'] if 'img_size' in config else 416
         self.max_objects = 100
         self.augment = augment
         self.multiscale = config['multiscale_training'] if 'multiscale_training' in config else False
-        self.multiscale = self.multiscale & train
+        self.multiscale = self.multiscale & (set=='train')
         self.min_size = self.img_size - 3 * 32
         self.max_size = self.img_size + 3 * 32
         self.batch_count = 0
@@ -198,10 +198,7 @@ class IndexDataset(Dataset):
 
     def __getitem__(self, index):
         line = self.lines[index % len(self.lines)]
-        img_path = line[0].rstrip()
-        label = line[1:]
-        img, targets = self.loader.load(img_path, label, self.augment)
-        return img_path, img, targets
+        return self.loader.load(line, self.augment)
 
     def collate_fn(self, batch):
         paths, imgs, targets = list(zip(*batch))

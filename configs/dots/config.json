@@ -1,6 +1,6 @@
 {
   "task": "yolov3",
-  "type": "dots",
+  "type": "dotsobj",
 
   "batch_size": 4,
   "vbatch_size": 10,
