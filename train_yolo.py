@@ -122,15 +122,12 @@ def train(opt, config, logger, device):
             print("\n---- Evaluating Model ----")
             # Evaluate the model on the validation set
             precision, recall, AP, f1, ap_class, landm = evaluate(
-              model,
-              config=config,
+              model, config=config,
             )
             APmean = AP.mean()
             evaluation_metrics = [
-              ("val_precision", precision.mean()),
-              ("val_recall", recall.mean()),
-              ("val_mAP", APmean),
-              ("val_f1", f1.mean()),
+              ("val_precision", precision.mean()), ("val_recall", recall.mean()),
+              ("val_mAP", APmean), ("val_f1", f1.mean()),
             ]
             if landm is not None:
                 evaluation_metrics.append( ("landm", landm.mean()) )

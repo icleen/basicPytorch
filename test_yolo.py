@@ -53,7 +53,7 @@ def evaluate(model, config, verbose=False):
     sample_metrics = []  # List of tuples (TP, confs, pred)
     land_metrics = None
     landm_set = ['landmark', 'part2', 'phantom']
-    landsm_set = ['multilands', 'phantomobj', 'twoobj']
+    landsm_set = ['multilands', 'phantomobj', 'twoobj', 'dotsobj']
     if model.type in landm_set or model.type in landsm_set:
         land_metrics = []  # List of np arrs (landmark dists)
     loop = tqdm.tqdm(total=len(dataloader), position=0)
@@ -64,13 +64,15 @@ def evaluate(model, config, verbose=False):
         with torch.no_grad():
             outputs = model(imgs)
             if model.type in landsm_set:
-                outputs = non_max_suppression_multilands(outputs,
-                    conf_thres=conf_thres, nms_thres=nms_thres,
-                    landmarks=config['data_config']['landmarks'])
+                outputs = non_max_suppression_multilands(
+                  outputs, conf_thres=conf_thres, nms_thres=nms_thres,
+                  landmarks=config['data_config']['landmarks']
+                )
                 outputs = post_process_expected(outputs, expected=expected)
             else:
-                outputs = non_max_suppression(outputs,
-                    conf_thres=conf_thres, nms_thres=nms_thres)
+                outputs = non_max_suppression(
+                  outputs, conf_thres=conf_thres, nms_thres=nms_thres
+                )
                 outputs = post_process_expected(outputs, expected=expected)
 
         # Extract labels
