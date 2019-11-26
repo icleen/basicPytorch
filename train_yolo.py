@@ -51,7 +51,6 @@ def train(opt, config, logger, device):
     else:
         dataset = FolderDataset( config, train=True, augment=True )
     temp = dataset[0]
-    print(temp[-1].shape)
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=config['batch_size'],
@@ -107,7 +106,7 @@ def train(opt, config, logger, device):
                 optimizer.zero_grad()
 
             loop.set_description(
-                'ep:{},loss:{:.3f}'.format( epoch, loss )
+              'ep:{},loss:{:.3f}'.format( epoch, loss )
             )
             loop.update(1)
 
@@ -115,7 +114,7 @@ def train(opt, config, logger, device):
 
         if epoch % config['checkpoint_interval'] == 0:
             torch.save(model.state_dict(),
-                config['checkpoint_path'].format(epoch)
+              config['checkpoint_path'].format(epoch)
             )
             # print('saved:', config['checkpoint_path'].format(epoch))
 
@@ -123,15 +122,15 @@ def train(opt, config, logger, device):
             print("\n---- Evaluating Model ----")
             # Evaluate the model on the validation set
             precision, recall, AP, f1, ap_class, landm = evaluate(
-                model,
-                config=config,
+              model,
+              config=config,
             )
             APmean = AP.mean()
             evaluation_metrics = [
-                ("val_precision", precision.mean()),
-                ("val_recall", recall.mean()),
-                ("val_mAP", APmean),
-                ("val_f1", f1.mean()),
+              ("val_precision", precision.mean()),
+              ("val_recall", recall.mean()),
+              ("val_mAP", APmean),
+              ("val_f1", f1.mean()),
             ]
             if landm is not None:
                 evaluation_metrics.append( ("landm", landm.mean()) )
@@ -169,12 +168,15 @@ def train(opt, config, logger, device):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", type=str,
-        default="configs/twoobj/config.json", help="path to config file")
-    parser.add_argument("-v", "--verbose", default=False,
-        help="if print all info")
-    parser.add_argument("--continu", type=str, default=None,
-        help="if continuing training from checkpoint model")
+    parser.add_argument(
+      "-c", "--config", type=str, default="configs/twoobj/config.json", help="path to config file"
+    )
+    parser.add_argument(
+      "-v", "--verbose", default=False, help="if print all info"
+    )
+    parser.add_argument(
+      "--continu", type=str, default=None, help="if continuing training from checkpoint model"
+    )
     opt = parser.parse_args()
 
     config = json.load(open(opt.config))

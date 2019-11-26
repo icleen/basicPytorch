@@ -30,6 +30,8 @@ def evaluate(model, config, verbose=False):
     # Get dataloader
     if False and 'phantom' in config['type']:
         dataset = PhantomSet( config, train=False, augment=False )
+    elif 'dots' in config['type']:
+        dataset = IndexDataset( config, set='valid', augment=True )
     else:
         dataset = FolderDataset( config, train=False, augment=False )
     dataloader = torch.utils.data.DataLoader(
@@ -78,6 +80,7 @@ def evaluate(model, config, verbose=False):
         targets[:, 2:6] *= img_size
         metrics = get_batch_statistics(outputs, targets, iou_threshold=iou_thres)
         sample_metrics += metrics
+        import pdb; pdb.set_trace()
         if model.type in landm_set:
             if model.type == 'twoobj':
                 targets[:, -2:] *= img_size

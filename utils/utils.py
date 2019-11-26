@@ -456,17 +456,12 @@ def build_targets_multilands(pred_boxes, pred_cls, target, anchors, ignore_thres
     tw = FloatTensor(nB, nA, nG, nG).fill_(0)
     th = FloatTensor(nB, nA, nG, nG).fill_(0)
     tcls = FloatTensor(nB, nA, nG, nG, nC).fill_(0)
-    print(target.shape)
-    print(lands)
     gxyl = target[:, -lands:] * nG
     target = target[:, :-lands]
     # Convert to position relative to box
     target_boxes = target[:, 2:6] * nG
     gxy = target_boxes[:, :2]
     gwh = target_boxes[:, 2:]
-    print(target.shape)
-    print(gxyl.shape)
-    print(target_boxes.shape)
     # Get anchors with best iou
     ious = torch.stack([bbox_wh_iou(anchor, gwh) for anchor in anchors])
     best_ious, best_n = ious.max(0)

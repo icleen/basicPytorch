@@ -2,14 +2,14 @@
   "task": "yolov3",
   "type": "dotsobj",
 
-  "batch_size": 4,
+  "batch_size": 2,
   "vbatch_size": 10,
   "model_def": "configs/dots/model.cfg",
 
   "data_config": {
     "type": "random",
     "classes": 1,
-    "widths": 1.0,
+    "widths": 0.99,
     "landmarks": 169,
     "expected_objects": 1,
     "iters": 4000,

@@ -363,7 +363,7 @@ class DotsFileLoader(BasicLoader):
     def __init__(self, config):
         super(DotsFileLoader, self).__init__()
         self.root = config['data_config']['root']
-        self.center = config['img_size']/2
+        self.center = 0.5
         self.widths = config['data_config']['widths']
         self.numpts = config['data_config']['landmarks'] * config['data_config']['expected_objects']
         self.indeplands = config['type'] != 'dotsobj'
@@ -371,11 +371,17 @@ class DotsFileLoader(BasicLoader):
             self.classes = True
 
     def load(self, filename, augment=False):
+
+        img_path = osp.join(self.root, filename).replace('points', 'images').replace('pts', 'png')
+        img = cv2.imread(img_path, 1)
+        img = img.astype(np.float32)
+
         with open(osp.join(self.root, filename), 'r') as f:
             lines = [line.strip() for line in f][1:]
         boxes = np.array( [ [
           float(info) for info in line.split(',') ]
             for line in lines ], dtype=np.float32)
+        boxes = boxes / np.array([img.shape[1], img.shape[0]], dtype=np.float32)
         if self.indeplands:
             points = np.pad(boxes, ((0,0),(2,0)), 'constant', constant_values=0)
             points = np.pad(points, ((0,0),(0,2)), 'constant', constant_values=self.widths)
@@ -388,8 +394,5 @@ class DotsFileLoader(BasicLoader):
             points[4:6] += self.widths
             targets = torch.from_numpy(points).unsqueeze(0)
 
-        img_path = osp.join(self.root, filename).replace('points', 'images').replace('pts', 'png')
-        img = cv2.imread(img_path, 1)
-        img = img.astype(np.float32)
         img = transforms.ToTensor()(img)
         return img_path, img, targets
