@@ -23,7 +23,7 @@
   "img_size": 416,
   "checkpoint_interval": 1,
   "evaluation_interval": 1,
-  "multiscale_training": true,
+  "multiscale_training": false,
   "gradient_accumulations": 2,
   "epochs": 20,
 

@@ -225,13 +225,13 @@ def get_multiland_statistics(outputs, targets, lands=1, expected=1):
     return np.mean(land_dists, axis=1)
 
 
-def get_regress_statistics(outputs, targets):
+def get_regress_statistics(outputs, targets, size=4):
     stats = np.zeros(outputs.size(0))
     for oi in range(outputs.size(0)):
-        for oj in range(2):
+        for oj in range(0, size, 2):
             dist = torch.dist(outputs[oi,oj:oj+2], targets[oi,oj:oj+2], 2)
             stats[oi] += dist.numpy()
-        stats[oi] /= 2
+        stats[oi] /= (size/2)
     return stats
 
 

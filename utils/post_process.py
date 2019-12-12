@@ -144,8 +144,8 @@ def post_process_expected(pred_boxes, expected=1):
     return pred_boxes
 
 
-def regress_postp(preds):
-    return torch.mean(preds.view(-1, 3, 4), dim=1)
+def regress_postp(preds, size=4):
+    return torch.mean(preds.view(-1, 3, size), dim=1)
 
 
 def post_process_twoobj(pred_boxes):

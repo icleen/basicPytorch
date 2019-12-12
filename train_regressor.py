@@ -60,13 +60,21 @@ if __name__ == "__main__":
             model.load_weights(config['pretrained_weights'])
 
     # Get dataloader
-    dataset = FolderDataset( config, train=True, augment=True )
+    # Get dataloader
+    if 'phantom' in config['type']:
+        dataset = PhantomSet( config, train=True, augment=True )
+    elif 'dots' in config['type']:
+        dataset = IndexDataset( config, set='train', augment=True )
+    else:
+        dataset = FolderDataset( config, train=True, augment=True )
+    temp = dataset[0]
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=config['batch_size'],
         shuffle=True,
         num_workers=config['n_cpu'],
         pin_memory=True,
+        collate_fn=dataset.collate_fn,
     )
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'])
@@ -76,6 +84,7 @@ if __name__ == "__main__":
     'vloss': [],
     'avg_dist': [],
     }
+    bsf = 100000000
     modi = len(dataloader) // 5
     for epoch in range(config['epochs']):
         model.train()
@@ -100,8 +109,8 @@ if __name__ == "__main__":
         loop.close()
 
         if epoch % config['checkpoint_interval'] == 0:
-            torch.save(model.state_dict(),
-                config['checkpoint_path'].format('best')
+            torch.save(
+              model.state_dict(), config['checkpoint_path'].format(str(epoch))
             )
 
         if epoch % config['evaluation_interval'] == 0:
@@ -113,10 +122,10 @@ if __name__ == "__main__":
                 f.write(str(metrics))
 
             if bsf > avg_dist:
-                torch.save(model.state_dict(),
-                    config['checkpoint_path'].format('best')
+                torch.save(
+                  model.state_dict(), config['checkpoint_path'].format('best')
                 )
-                bsf = results
+                bsf = avg_dist
 
 """
 Notes on how to run

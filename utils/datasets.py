@@ -122,6 +122,7 @@ class FolderDataset(Dataset):
         folder_path = config['data_config'][tvp]
         self.data = [osp.join(folder_path, filep) for filep in os.listdir(folder_path)]
 
+        self.regress = config['task'] == 'regress'
         self.loader = None
         if 'phantom' in config['type']:
             self.loader = PhantomFileLoader(config)
@@ -129,7 +130,7 @@ class FolderDataset(Dataset):
             self.loader = HipFileLoader(config)
         elif config['task'] == 'two_part':
             self.loader = HipFileLoader(config)
-        elif config['task'] == 'regress':
+        elif self.regress:
             self.loader = RegressFileLoader(config)
 
         self.img_size = config['img_size'] if 'img_size' in config else 416
@@ -161,9 +162,10 @@ class FolderDataset(Dataset):
         paths, imgs, targets = list(zip(*batch))
         # Remove empty placeholder targets
         targets = [boxes for boxes in targets if boxes is not None]
-        # Add sample index to targets
-        for i, boxes in enumerate(targets):
-            boxes[:, 0] = i
+        if not self.regress:
+            # Add sample index to targets
+            for i, boxes in enumerate(targets):
+                boxes[:, 0] = i
         targets = torch.cat(targets, 0)
         # Selects new image size every tenth batch
         if self.multiscale and self.batch_count % 10 == 0:
@@ -182,7 +184,11 @@ class IndexDataset(Dataset):
         with open(index_path, 'r') as f:
             self.lines = [line.strip() for line in f]
 
-        self.loader = DotsFileLoader(config)
+        self.regress = config['task'] == 'regress'
+        if self.regress:
+            self.loader = DotsRegressLoader(config)
+        else:
+            self.loader = DotsFileLoader(config)
 
         self.img_size = config['img_size'] if 'img_size' in config else 416
         self.max_objects = 100
@@ -204,9 +210,10 @@ class IndexDataset(Dataset):
         paths, imgs, targets = list(zip(*batch))
         # Remove empty placeholder targets
         targets = [boxes for boxes in targets if boxes is not None]
-        # Add sample index to targets
-        for i, boxes in enumerate(targets):
-            boxes[:, 0] = i
+        if not self.regress:
+            # Add sample index to targets
+            for i, boxes in enumerate(targets):
+                boxes[:, 0] = i
         targets = torch.cat(targets, 0)
         # Selects new image size every tenth batch
         if self.multiscale and self.batch_count % 10 == 0:

@@ -354,7 +354,7 @@ class RegressFileLoader(BasicLoader):
             img = transforms.ToTensor()(img)
             boxes = torch.from_numpy(boxes)
 
-        return img_path, img, boxes[0]
+        return img_path, img, boxes
 
 
 class DotsFileLoader(BasicLoader):
@@ -393,6 +393,37 @@ class DotsFileLoader(BasicLoader):
             points[2:4] += self.center
             points[4:6] += self.widths
             targets = torch.from_numpy(points).unsqueeze(0)
+
+        img = transforms.ToTensor()(img)
+        return img_path, img, targets
+
+class DotsRegressLoader(BasicLoader):
+    """docstring for DotsRegressLoader."""
+
+    def __init__(self, config):
+        super(DotsRegressLoader, self).__init__()
+        self.root = config['data_config']['root']
+        self.center = 0.5
+        self.widths = config['data_config']['widths']
+        self.numpts = config['data_config']['landmarks'] * config['data_config']['expected_objects']
+        self.indeplands = config['type'] != 'dotsobj'
+        if self.indeplands:
+            self.classes = True
+
+    def load(self, filename, augment=False):
+
+        img_path = osp.join(self.root, filename).replace('points', 'images').replace('pts', 'png')
+        img = cv2.imread(img_path, 1)
+        img = img.astype(np.float32)
+
+        with open(osp.join(self.root, filename), 'r') as f:
+            lines = [line.strip() for line in f][1:]
+        boxes = np.array( [ [
+          float(info) for info in line.split(',') ]
+            for line in lines ], dtype=np.float32)
+        boxes = boxes / np.array([img.shape[1], img.shape[0]], dtype=np.float32)
+        boxes = boxes.reshape(1, -1)
+        targets = torch.from_numpy(boxes)
 
         img = transforms.ToTensor()(img)
         return img_path, img, targets

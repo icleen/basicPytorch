@@ -4,6 +4,7 @@ from models import *
 from utils.utils import *
 from utils.datasets import *
 from utils.parse_config import *
+from utils.post_process import *
 
 import os
 import sys
@@ -25,12 +26,19 @@ def evaluate(model, config, verbose=False, save_imgs=0):
     model.eval()
 
     # Get dataloader
-    dataset = FolderDataset( config, train=False, augment=False )
+    if 'phantom' in config['type']:
+        dataset = PhantomSet( config, train=False, augment=False )
+    elif 'dots' in config['type']:
+        dataset = IndexDataset( config, set='valid', augment=False )
+    else:
+        dataset = FolderDataset( config, train=False, augment=False )
+    temp = dataset[0]
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=config['batch_size'],
         shuffle=False,
-        num_workers=1
+        num_workers=1,
+        collate_fn=dataset.collate_fn,
     )
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -50,8 +58,11 @@ def evaluate(model, config, verbose=False, save_imgs=0):
             outputs, loss = model(imgsv, targetsv)
             loss = loss.cpu().item()
             vloss += loss
-            outputs = regress_postp(outputs)
-            stats += list(get_regress_statistics(outputs*imgs.size(-1), targets*imgs.size(-1)))
+            outputs = regress_postp(outputs, size=config['data_config']['landmarks']*2)
+            stats += list( get_regress_statistics(
+              outputs*imgs.size(-1), targets*imgs.size(-1),
+              size=config['data_config']['landmarks']*2
+            ) )
 
 
             if saved < save_imgs:
@@ -61,14 +72,11 @@ def evaluate(model, config, verbose=False, save_imgs=0):
                 label = targets[0].cpu().numpy()
                 pred *= img.shape[0]
                 label *= img.shape[0]
-                img = cv2.circle(img,
-                    (pred[0], pred[1]), 5, (0,255,0), 1)
-                img = cv2.circle(img,
-                    (pred[2], pred[3]), 5, (0,255,0), 1)
-                img = cv2.circle(img,
-                    (label[0], label[1]), 5, (0,0,255), 1)
-                img = cv2.circle(img,
-                    (label[2], label[3]), 5, (0,0,255), 1)
+                for pi in range(0,config['data_config']['landmarks']*2,2):
+                    img = cv2.circle(img,
+                        (pred[pi], pred[pi+1]), 5, (0,255,0), 1)
+                    img = cv2.circle(img,
+                        (label[pi], label[pi+1]), 5, (0,0,255), 1)
                 # print(outimg.shape)
                 cv2.imwrite('output/regimg_{}.png'.format(batch_i), img)
                 saved += 1
@@ -114,4 +122,4 @@ if __name__ == "__main__":
     print("Compute mAP...")
 
     vloss, avg_dist = evaluate( model, config, save_imgs=2 )
-    print('vloss:', results, ', avg_dist:', avg_dist)
+    print('vloss:', vloss, ', avg_dist:', avg_dist)
